@@ -38,12 +38,18 @@ export function Footer() {
       <div className="bg-black text-white pt-16 pb-8 px-6">
         <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           
-          {/* Coluna 1: Marca */}
-          <div className="space-y-6">
-            <h3 className="font-display text-3xl text-cta">LOOP DONUTS</h3>
-            <p className="font-body text-gray-400">
-              Feitos à mão, com ingredientes de verdade e uma pitada de loucura. O melhor Donut da sua vida.
-            </p>
+          {/* Coluna 1: Marca (Logo + Social) */}
+          {/* 'items-start' garante que tudo fique alinhado à esquerda */}
+          <div className="flex flex-col items-start gap-6">
+            
+            {/* Logo */}
+            <img 
+              src="/logo.png" 
+              alt="Loop Donuts Logo" 
+              className="w-40 md:w-48 h-auto object-contain"
+            />
+
+            {/* Redes Sociais */}
             <div className="flex gap-4">
               <a href="#" className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors">
                 <Instagram className="w-5 h-5" />

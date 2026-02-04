@@ -1,3 +1,4 @@
+import Link from "next/link"; // <--- ESTA LINHA ESTAVA FALTANDO
 import { NavBar } from "@/components/NavBar";
 import { ArrowRight } from "lucide-react";
 import { donuts } from "@/data/products";
@@ -18,16 +19,16 @@ export default function Home() {
       {/* --- HERO SECTION --- */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center z-20">
         
-        {/* --- NOVO MENU DE LINKS (AGORA COM BOTÕES PADRÃO) --- */}
-        {/* Eles ficam no topo da Hero e sobem junto com o scroll */}
+        {/* --- NOVO MENU DE LINKS --- */}
         <nav className="absolute top-10 left-0 right-0 z-30 hidden md:flex justify-center w-full">
           <div className="flex gap-4 items-center">
-            <a 
-              href="#" 
+            {/* Botão Cardápio usando Link (Navegação Rápida) */}
+            <Link 
+              href="/menu" 
               className="bg-cta hover:bg-cta-hover text-black font-mono font-bold text-sm uppercase tracking-wide px-6 py-3 rounded-pill border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-none transition-all"
             >
               Cardápio
-            </a>
+            </Link>
 
             <a 
               href="#" 
@@ -105,10 +106,14 @@ export default function Home() {
         </div>
 
         <div className="mt-4">
-          <button className="group relative inline-flex items-center gap-3 bg-cta hover:bg-cta-hover text-black font-display text-xl px-8 py-4 rounded-pill border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
-            VER CARDÁPIO COMPLETO
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          // DEPOIS (Com o Link funcionando)
+          <Link 
+            href="/menu" 
+            className="group relative inline-flex items-center gap-3 bg-cta hover:bg-cta-hover text-black font-display text-2xl px-8 py-5 rounded-pill border-3 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+          >
+            PEDIR AGORA
+            <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+          </Link>
         </div>
       </section>
 

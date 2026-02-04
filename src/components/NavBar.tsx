@@ -1,34 +1,58 @@
-import { ShoppingCart, Menu } from "lucide-react";
+"use client";
+
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { useCart } from "@/context/CartContext";
+import { usePathname } from "next/navigation"; // <--- 1. Importar para saber a rota atual
 
 export function NavBar() {
-  return (
-    // 'pointer-events-none' faz com que a barra seja "fantasma" (cliques passam pelo meio dela)
-    <nav className="fixed top-0 left-0 right-0 z-50 py-6 bg-transparent transition-all pointer-events-none">
-      <div className="container mx-auto px-6 flex items-center justify-between">
-        
-        {/* Esquerda: Menu Mobile */}
-        <button className="md:hidden p-2 hover:bg-black/5 rounded-full pointer-events-auto">
-          <Menu className="w-6 h-6 text-black" />
-        </button>
+  const { cartCount } = useCart();
+  const pathname = usePathname(); // <--- 2. Descobre onde o usuário está
 
-        {/* Centro/Esquerda: Logo */}
-        <Link href="/" className="hover:scale-105 transition-transform pointer-events-auto">
-          <img src="/logo.png" alt="Loop Donuts Logo" className="h-32 w-auto object-contain" />
+  // Função que decide o que fazer ao clicar no Logo
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Se já estiver na Home ("/"), apenas sobe suavemente
+    if (pathname === "/") {
+      e.preventDefault(); // Impede de recarregar a página
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth", // Efeito de rolagem suave
+      });
+    }
+    // Se NÃO estiver na home, o Link segue normal para o href="/"
+  };
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 py-4 pointer-events-none">
+      <div className="container mx-auto flex justify-between items-center w-full">
+        
+        {/* --- LOGO INTELIGENTE --- */}
+        <Link 
+          href="/" 
+          onClick={handleLogoClick} // <--- 3. Adicionamos o evento de clique aqui
+          className="hover:scale-105 transition-transform pointer-events-auto"
+        >
+          <img 
+            src="/logo.png" 
+            alt="Loop Donuts Logo" 
+            className="h-32 w-auto object-contain" // Mantendo o tamanho original grande
+          />
         </Link>
 
-        {/* --- AQUI NÃO TEM MAIS OS LINKS (Eles foram para a Hero Section) --- */}
-
-        {/* Direita: Carrinho */}
-        <button className="relative group pointer-events-auto">
-          <div className="bg-cta p-3 rounded-full border-2 border-black group-hover:bg-cta-hover transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none">
-            <ShoppingCart className="w-5 h-5 text-black" />
-          </div>
+        {/* --- CARRINHO --- */}
+        <Link 
+          href="/cart"
+          className="pointer-events-auto relative bg-cta p-3 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+        >
+          <ShoppingBag className="w-6 h-6 text-black" />
           
-          <span className="absolute -top-1 -right-1 bg-brand text-white text-xs font-mono font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-black">
-            2
-          </span>
-        </button>
+          {cartCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white animate-bounce">
+              {cartCount}
+            </span>
+          )}
+        </Link>
+
       </div>
     </nav>
   );
