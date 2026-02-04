@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// Definição do tipo do item
 export interface CartItem {
   id: number;
   name: string;
@@ -15,6 +14,8 @@ interface CartContextType {
   items: CartItem[];
   addToCart: (product: Omit<CartItem, "quantity">) => void;
   removeFromCart: (id: number) => void;
+  increaseQuantity: (id: number) => void; // <--- NOVA
+  decreaseQuantity: (id: number) => void; // <--- NOVA
   cartCount: number;
 }
 
@@ -54,14 +55,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // --- NOVA FUNÇÃO: AUMENTAR ---
+  const increaseQuantity = (id: number) => {
+    setItems((prev) => prev.map((item) => 
+      item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+    ));
+  };
+
+  // --- NOVA FUNÇÃO: DIMINUIR (Trava no 1) ---
+  const decreaseQuantity = (id: number) => {
+    setItems((prev) => prev.map((item) => 
+      item.id === id 
+        ? { ...item, quantity: Math.max(1, item.quantity - 1) } // Nunca fica menor que 1
+        : item
+    ));
+  };
+
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, cartCount }}>
+    <CartContext.Provider value={{ items, addToCart, removeFromCart, increaseQuantity, decreaseQuantity, cartCount }}>
       {children}
     </CartContext.Provider>
   );
 }
 
-// A EXPORTAÇÃO QUE O ERRO ESTÁ PEDINDO 👇
 export const useCart = () => useContext(CartContext);
