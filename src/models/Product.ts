@@ -5,19 +5,24 @@ export interface IProduct extends Document {
   description: string;
   price: number;
   image: string;
-  category?: string;
+  category: string;
+  stock: number;
+  isActive: boolean;
+  isFeatured: boolean; // 👈 NOVO: Define se aparece no Carrossel/Favoritos
 }
 
 const ProductSchema = new Schema<IProduct>(
   {
     name: { type: String, required: true },
-    description: { type: String, required: true },
+    description: { type: String },
     price: { type: Number, required: true },
-    image: { type: String, required: true },
-    category: { type: String, required: false },
+    image: { type: String },
+    category: { type: String, default: 'Donuts' }, // Importante para os botões do cardápio
+    stock: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    isFeatured: { type: Boolean, default: false }, // 👈 Padrão é falso
   },
-  { timestamps: true } // Cria createdAt e updatedAt automático
+  { timestamps: true }
 );
 
-// Se o modelo já existe (cache do Next.js), usa ele. Se não, cria um novo.
 export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);

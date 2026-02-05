@@ -2,45 +2,44 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// 1. Definindo o formato do Item
+// Tipagem do Item
 interface CartItem {
-  id: number;
+  id: string;
   name: string;
   price: number;
   image: string;
   quantity: number;
 }
 
-// 2. Definindo o que o Contexto oferece (Adicionei clearCart aqui)
+// O que o Contexto oferece para o site
 interface CartContextType {
-  items: CartItem[];
+  cart: CartItem[];
   addToCart: (product: any) => void;
-  removeFromCart: (id: number) => void;
-  increaseQuantity: (id: number) => void;
-  decreaseQuantity: (id: number) => void;
-  clearCart: () => void; // <--- NOVO!
+  removeFromCart: (productId: string) => void;
+  clearCart: () => void;
+  total: number;
+  cartCount: number;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+const CartContext = createContext<CartContextType>({} as CartContextType);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Carrega do LocalStorage ao abrir
+  // 1. Carregar carrinho salvo ao abrir o site
   useEffect(() => {
-    const storedCart = localStorage.getItem("loop-cart");
-    if (storedCart) {
-      setItems(JSON.parse(storedCart));
-    }
+    const savedCart = localStorage.getItem("loop-cart");
+    if (savedCart) setCart(JSON.parse(savedCart));
   }, []);
 
-  // Salva no LocalStorage sempre que muda
+  // 2. Salvar carrinho sempre que mudar
   useEffect(() => {
-    localStorage.setItem("loop-cart", JSON.stringify(items));
-  }, [items]);
+    localStorage.setItem("loop-cart", JSON.stringify(cart));
+  }, [cart]);
 
+  // Função de Adicionar
   const addToCart = (product: any) => {
-    setItems((prev) => {
+    setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
         return prev.map((item) =>
@@ -51,52 +50,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeFromCart = (id: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  // Função de Remover
+  const removeFromCart = (id: string) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const increaseQuantity = (id: number) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-      )
-    );
-  };
+  const clearCart = () => setCart([]);
 
-  const decreaseQuantity = (id: number) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      )
-    );
-  };
-
-  // 3. A Função Nova que zera tudo
-  const clearCart = () => {
-    setItems([]); 
-    localStorage.removeItem("loop-cart");
-  };
+  // Cálculos automáticos
+  const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <CartContext.Provider 
-      value={{ 
-        items, 
-        addToCart, 
-        removeFromCart, 
-        increaseQuantity, 
-        decreaseQuantity, 
-        clearCart // <--- NÃO ESQUEÇA DE EXPORTAR ELA AQUI
-      }}
-    >
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total, cartCount }}>
       {children}
     </CartContext.Provider>
   );
 }
 
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) throw new Error("useCart must be used within a CartProvider");
-  return context;
-};
+// Hook para usar o carrinho em qualquer lugar
+export const useCart = () => useContext(CartContext);
