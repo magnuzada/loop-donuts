@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { Inter, Syne } from "next/font/google"; // Suas fontes (mantenha as que estiverem aí)
+import { Inter } from "next/font/google"; // 👈 Faltou importar isso aqui
 import "./globals.css";
-import { CartProvider } from "@/context/CartContext"; // 👈 IMPORTANTE
+import { CartProvider } from "@/context/CartContext";
 
-// ... (mantenha suas configurações de fonte e metadata)
+// 👇 E faltou definir isso aqui
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Loop Donuts",
+  description: "Os melhores donuts artesanais da cidade",
+};
 
 export default function RootLayout({
   children,
@@ -12,8 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className="..."> {/* Mantenha suas classes do body */}
-        {/* 👇 ENVOLVA TUDO AQUI */}
+      <body className={inter.className} suppressHydrationWarning={true}>
         <CartProvider>
           {children}
         </CartProvider>

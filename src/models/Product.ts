@@ -1,28 +1,44 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, model, models } from "mongoose";
 
-export interface IProduct extends Document {
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  category: string;
-  stock: number;
-  isActive: boolean;
-  isFeatured: boolean; // 👈 NOVO: Define se aparece no Carrossel/Favoritos
-}
-
-const ProductSchema = new Schema<IProduct>(
+const ProductSchema = new Schema(
   {
+    // 1. Informações Básicas
     name: { type: String, required: true },
-    description: { type: String },
+    description: { type: String, required: true },
+    image: { type: String, required: true }, // URL única
+    
+    // 2. Controle & Estoque
+    sku: { type: String, unique: true, sparse: true }, // Código único (opcional no início)
+    status: { 
+      type: String, 
+      enum: ["active", "inactive", "draft"], 
+      default: "active" 
+    },
+    stock: { type: Number, required: true, default: 0 },
+    minStock: { type: Number, default: 5 }, // Alerta de estoque baixo
+
+    // 3. Precificação & Ofertas
     price: { type: Number, required: true },
-    image: { type: String },
-    category: { type: String, default: 'Donuts' }, // Importante para os botões do cardápio
-    stock: { type: Number, default: 0 },
-    isActive: { type: Boolean, default: true },
-    isFeatured: { type: Boolean, default: false }, // 👈 Padrão é falso
+    discountPrice: { type: Number }, // Preço promocional
+    discountStart: { type: Date },
+    discountEnd: { type: Date },
+
+    // 4. Categorização (3 Níveis Fixos + Tags)
+    category: { type: String, required: true },       // Nível 1 (ex: Bebidas)
+    subcategory: { type: String },                    // Nível 2 (ex: Café)
+    subSubCategory: { type: String },                 // Nível 3 (ex: Expresso)
+    tags: { type: [String], default: [] },            // Flexível (ex: Sem açúcar)
+
+    // ...
+    isFeatured: { type: Boolean, default: false },
+    isPromo: { type: Boolean, default: false },
+    isNewArrival: { type: Boolean, default: false }, // 👈 MUDOU DE isNew PARA isNewArrival
+// ...
   },
-  { timestamps: true }
+  { timestamps: true } // Cria automaticamente createdAt e updatedAt
 );
 
-export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);
+// Evita re-compilar o modelo se já existir (Hot Reload do Next.js)
+const Product = models.Product || model("Product", ProductSchema);
+
+export default Product;
