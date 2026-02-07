@@ -1,57 +1,147 @@
-"use client";
-
-import { ShoppingCart } from "lucide-react";
-import { useCart } from "@/context/CartContext"; // 👈 Importa o Hook
+import Image from "next/image";
+import { ShoppingCart, Star, Flame, Percent } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
-  id?: string;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
+  product: any;
+  viewMode?: "grid" | "list";
 }
 
-export function ProductCard({ id, name, description, price, image }: ProductCardProps) {
-  const { addToCart } = useCart(); // 👈 Pega a função oficial
+export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
+  const { addToCart } = useCart();
 
-  const handleAdd = () => {
-    // Usa a função do contexto (muito mais limpo!)
-    addToCart({
-      id: id || name, // Fallback se não tiver ID
-      name,
-      price,
-      image,
-    });
-    
-    // Feedback visual opcional (pode manter o alert ou tirar)
-    // alert(`🍩 ${name} foi para o carrinho!`); 
-  };
+  const hasDiscount = product.discountPrice && product.discountPrice < product.price;
+  const isNew = product.isNewArrival;
+  const isPromo = product.isPromo;
 
+  // --- MODO LISTA (Horizontal) ---
+  if (viewMode === "list") {
+    return (
+      <div className="group flex flex-col sm:flex-row w-full bg-paper rounded-card overflow-hidden border border-stone-200 hover:border-black transition-all hover:shadow-hard">
+        
+        {/* Imagem */}
+        <div className="relative w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-canvas-alt">
+           <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+           {/* Tags Mini */}
+           <div className="absolute top-2 left-2 flex flex-col gap-1">
+              {isNew && <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-pill uppercase">Novo</span>}
+              {hasDiscount && <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-pill uppercase">Promo</span>}
+           </div>
+        </div>
+
+        {/* Conteúdo */}
+        <div className="flex flex-col flex-grow p-4 justify-between">
+          <div>
+             <div className="flex justify-between items-start">
+                <h3 className="font-black text-xl text-gray-800 uppercase leading-tight">{product.name}</h3>
+                {product.subcategory && (
+                  <span className="text-xs font-bold text-gray-400 border border-gray-200 px-2 py-1 rounded-pill">{product.subcategory}</span>
+                )}
+             </div>
+             <p className="text-gray-500 text-sm mt-2 line-clamp-2">{product.description}</p>
+          </div>
+
+          <div className="flex items-end justify-between mt-4">
+             <div className="flex flex-col">
+                {hasDiscount && (
+                  <span className="text-sm text-gray-400 line-through font-medium">
+                    {product.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                )}
+                <span className="text-2xl font-black text-brand-500">
+                  {(hasDiscount ? product.discountPrice : product.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+             </div>
+
+             <button 
+                onClick={() => addToCart({ 
+                  id: product._id, 
+                  name: product.name, 
+                  price: hasDiscount ? product.discountPrice : product.price, 
+                  image: product.image 
+                })}
+                className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-btn font-bold flex items-center gap-2 transition-transform active:scale-95 shadow-md"
+             >
+                <ShoppingCart size={18} />
+                Adicionar
+             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- MODO GRADE (Vertical - Padrão) ---
   return (
-    <div className="group relative bg-white rounded-3xl overflow-hidden border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all h-full flex flex-col">
-      {/* ... (O resto do visual continua IGUAL, não mudei nada no CSS) ... */}
+    <div className="group relative bg-paper rounded-card overflow-hidden border-2 border-transparent hover:border-black transition-all hover:shadow-hard flex flex-col h-full">
       
-      {/* ... Imagem ... */}
-      <div className="relative h-48 w-full bg-cream overflow-hidden border-b-2 border-black">
-         <img src={image || "/placeholder.png"} alt={name} className="w-full h-full object-cover" />
+      {/* Imagem Grande */}
+      <div className="relative h-64 w-full bg-canvas-alt overflow-hidden">
+        <Image
+          src={product.image}
+          alt={product.name}
+          fill
+          className="object-cover object-center group-hover:scale-110 transition-transform duration-700"
+        />
+        
+        {/* Etiquetas */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+          {isNew && (
+            <div className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-pill shadow-sm flex items-center gap-1">
+              <Star size={12} fill="white" /> NOVIDADE
+            </div>
+          )}
+          {isPromo && (
+            <div className="bg-brand-500 text-white text-xs font-bold px-3 py-1 rounded-pill shadow-sm flex items-center gap-1">
+              <Flame size={12} fill="white" /> HOT
+            </div>
+          )}
+          {hasDiscount && (
+             <div className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-pill shadow-sm flex items-center gap-1">
+              <Percent size={12} /> {Math.round(((product.price - product.discountPrice) / product.price) * 100)}% OFF
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Corpo */}
       <div className="p-5 flex flex-col flex-grow">
-        <h3 className="font-display text-xl leading-tight mb-2">{name}</h3>
-        <p className="font-mono text-xs text-gray-500 mb-4 line-clamp-2 flex-grow">{description}</p>
+        <div className="flex-grow">
+           <h3 className="font-black text-xl text-gray-800 mb-2 uppercase tracking-tight">{product.name}</h3>
+           <p className="text-gray-500 text-sm leading-relaxed line-clamp-3">{product.description}</p>
+        </div>
 
-        <div className="flex items-center justify-between mt-auto">
-          <span className="font-display text-2xl text-cta-dark">
-            R$ {price.toFixed(2).replace(".", ",")}
-          </span>
+        {/* Rodapé */}
+        <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+           <div className="flex flex-col">
+              {hasDiscount && (
+                <span className="text-xs text-gray-400 line-through font-bold">
+                  {product.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              )}
+              {/* Usa Brand 500 para destaque de preço */}
+              <span className="text-2xl font-black text-brand-500">
+                {(hasDiscount ? product.discountPrice : product.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </span>
+           </div>
 
-          {/* Botão de Adicionar */}
-          <button
-            onClick={handleAdd}
-            className="bg-black text-white p-3 rounded-full hover:bg-cta hover:text-black transition-colors border-2 border-transparent hover:border-black"
-          >
-            <ShoppingCart size={20} />
-          </button>
+           <button 
+             onClick={() => addToCart({ 
+                id: product._id, 
+                name: product.name, 
+                price: hasDiscount ? product.discountPrice : product.price, 
+                image: product.image 
+             })}
+             className="w-12 h-12 bg-black hover:bg-brand-500 rounded-full flex items-center justify-center text-white transition-colors shadow-lg"
+             title="Adicionar ao Carrinho"
+           >
+              <ShoppingCart size={20} />
+           </button>
         </div>
       </div>
     </div>

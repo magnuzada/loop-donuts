@@ -4,16 +4,16 @@ import { useState } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
+import { LayoutGrid, List, Search } from "lucide-react"; // Importando ícones
 
 export default function MenuClient({ products }: { products: any[] }) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // Estado para Grade ou Lista
 
-  // Truque de Mestre: Em vez de fixar as categorias no código, 
-  // o site lê quais categorias existem nos produtos cadastrados!
-  // Se você criar um Donut "Bebidas" no admin, o botão aparece sozinho aqui.
+  // 1. Extrai categorias únicas dos produtos
   const categories = ["Todos", ...Array.from(new Set(products.map((p) => p.category)))];
 
-  // Filtra os itens com base na categoria
+  // 2. Filtra os itens
   const filteredItems = selectedCategory === "Todos"
     ? products
     : products.filter((item) => item.category === selectedCategory);
@@ -22,24 +22,50 @@ export default function MenuClient({ products }: { products: any[] }) {
     <main className="min-h-screen bg-cream">
       <NavBar />
 
-      {/* 👇 AJUSTE DE LAYOUT AQUI:
-         Mudei de pt-48 para pt-32 (celular) e pt-40 (PC).
-         Isso sobe o conteúdo mas deixa espaço para o Logo não ficar em cima.
-      */}
       <div className="container mx-auto px-6 pt-32 md:pt-40 pb-20">
         
-        {/* REMOVIDO: <h1 ...> NOSSO CARDÁPIO </h1> 🗑️ */}
+        {/* CABEÇALHO DO CARDÁPIO: Título + Controles */}
+        <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 border-b border-gray-200 pb-6">
+          <div>
+            <h1 className="text-4xl font-black uppercase text-gray-900 italic tracking-tighter">
+              Nosso Cardápio
+            </h1>
+            <p className="text-gray-500 mt-1">Escolha seus favoritos e monte sua caixa!</p>
+          </div>
 
-        {/* Filtros */}
-        <div className="flex flex-wrap justify-center gap-4 mb-12">
+          {/* Botões de Visualização (Grade vs Lista) */}
+          <div className="flex bg-white p-1 rounded-lg border border-gray-300 shadow-sm">
+             <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-md transition-all ${
+                  viewMode === "grid" ? "bg-brand-500 text-white shadow-md" : "text-gray-400 hover:text-gray-600"
+                }`}
+                title="Visualização em Grade"
+             >
+                <LayoutGrid size={20} />
+             </button>
+             <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-md transition-all ${
+                  viewMode === "list" ? "bg-brand-500 text-white shadow-md" : "text-gray-400 hover:text-gray-600"
+                }`}
+                title="Visualização em Lista"
+             >
+                <List size={20} />
+             </button>
+          </div>
+        </div>
+
+        {/* Filtros de Categoria */}
+        <div className="flex flex-wrap gap-3 mb-12">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-6 py-2 rounded-full font-bold border-2 border-black transition-all uppercase text-sm tracking-wide ${
+              className={`px-5 py-2 rounded-full font-bold border-2 border-black transition-all uppercase text-xs tracking-wide ${
                 selectedCategory === cat
-                  ? "bg-cta shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-1 text-black"
-                  : "bg-white hover:bg-gray-100 text-gray-700"
+                  ? "bg-black text-white -translate-y-1 shadow-[4px_4px_0px_0px_rgba(100,100,100,0.5)]"
+                  : "bg-white text-gray-700 hover:bg-gray-50"
               }`}
             >
               {cat}
@@ -47,25 +73,31 @@ export default function MenuClient({ products }: { products: any[] }) {
           ))}
         </div>
 
-        {/* Grid de Produtos */}
+        {/* Grid de Produtos - AQUI A MÁGICA ACONTECE */}
         {filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12 justify-items-center">
+          <div 
+            className={`
+              ${viewMode === "grid" 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8" // Estilo Grade
+                : "flex flex-col gap-6 max-w-4xl mx-auto" // Estilo Lista (Centralizado)
+              }
+            `}
+          >
             {filteredItems.map((item) => (
-              <div key={item._id} className="w-full max-w-[350px]">
+              <div key={item._id} className="w-full">
                 <ProductCard 
-                  // Passando os dados reais do banco
-                  name={item.name}
-                  description={item.description}
-                  price={item.price}
-                  image={item.image}
-                  // id={item._id} // Caso precise no futuro
+                  product={item}     // Passamos o objeto INTEIRO agora
+                  viewMode={viewMode} // Passamos o modo de visualização
                 />
               </div>
             ))}
           </div>
         ) : (
           <div className="text-center py-20 opacity-50">
-             <p className="text-xl font-bold">Nenhum produto nesta categoria... por enquanto! 🍩</p>
+             <div className="inline-block p-4 bg-gray-100 rounded-full mb-4">
+                <Search size={40} className="text-gray-400" />
+             </div>
+             <p className="text-xl font-bold text-gray-600">Ops! Nenhum donut encontrado nesta categoria.</p>
           </div>
         )}
       </div>

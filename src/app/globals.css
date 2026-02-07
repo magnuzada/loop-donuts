@@ -1,61 +1,9 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  /* Fontes */
-  --font-display: var(--font-dela);
-  --font-body: var(--font-space);
-  --font-mono: var(--font-roboto);
-
-  /* Cores */
-  --color-brand: #FE6100;
-  --color-brand-light: #FF7A29;
-  --color-cta: #FFBD03;
-  --color-cta-hover: #FFD04D;
-  --color-cream: #FEFBE7;
-
-  /* Bordas */
-  --radius-pill: 9999px;
-  --radius-card: 24px;
-}
-
-/* Reset */
-html, body {
-  height: 100%;
-}
-
-/* --- ANIMAÇÃO DE SCROLL INFINITO --- */
-@keyframes scroll-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
-.animate-infinite-scroll {
-  display: flex;
-  width: max-content; /* Garante que a largura seja a soma dos itens */
-  animation: scroll-left 60s linear infinite; /* 60s para ficar bem suave */
-}
-
-/* Pausa ao passar o mouse */
-.animate-infinite-scroll:hover {
-  animation-play-state: paused;
-}
-
-/* Animação para a Direita (Reverso) */
-@keyframes scroll-right {
-  from {
-    transform: translateX(-50%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-.animate-infinite-scroll-reverse {
-  display: flex;
-  width: max-content;
-  animation: scroll-right 60s linear infinite; /* Mesma velocidade suave */
-}
-
-.animate-infinite-scroll-reverse:hover {
-  animation-play-state: paused;
+/* Configuração suave para o corpo do site */
+body {
+  background-color: #FDFBF7; /* Cor Cream */
+  color: #1f2937;
 }
