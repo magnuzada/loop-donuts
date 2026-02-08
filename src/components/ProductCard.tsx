@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-// 1. Definimos o contrato: O Card ACEITA receber nome, preço, etc.
+// Definimos exatamente o que o card espera receber
 interface ProductCardProps {
   id?: string;
   name: string;
@@ -11,7 +11,6 @@ interface ProductCardProps {
 
 export default function ProductCard({ name, description, price, image }: ProductCardProps) {
   
-  // Função auxiliar para formatar dinheiro
   const formatMoney = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -21,10 +20,9 @@ export default function ProductCard({ name, description, price, image }: Product
 
   return (
     <div className="bg-white rounded-card shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col h-full">
-      {/* Imagem */}
       <div className="relative w-full h-48 bg-gray-50">
         <Image
-          src={image}
+          src={image || "/placeholder.png"} // Fallback caso não tenha imagem
           alt={name}
           fill
           className="object-cover"
@@ -32,7 +30,6 @@ export default function ProductCard({ name, description, price, image }: Product
         />
       </div>
 
-      {/* Conteúdo */}
       <div className="p-4 flex flex-col flex-grow">
         <h3 className="font-bold text-lg text-gray-800 mb-1">{name}</h3>
         <p className="text-sm text-gray-500 mb-4 line-clamp-2 flex-grow">
