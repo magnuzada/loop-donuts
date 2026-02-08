@@ -21,19 +21,32 @@ export default function Shop({ products }: { products: any[] }) {
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return alert("Carrinho vazio!");
-    
-    // Aqui chamamos sua API de Checkout que já criamos
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      body: JSON.stringify({ cart, customerName: "Cliente Site" }),
-    });
-    
-    const data = await res.json();
-    if (data.qr_code_base64) {
-      // Exibe o Pix ou redireciona (aqui você pode implementar um modal)
-      console.log("Pix gerado:", data.qr_code_base64);
-      alert(`Pedido criado! ID: ${data.orderId}. Copie e cole o Pix no console (F12) para testar.`);
+    if (cart.length === 0) return alert("Seu carrinho está vazio!");
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cart,
+          customer: { name: "Cliente Teste", email: "teste@loop.com" } // Dados fixos para teste
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.qr_code) {
+        console.log("💰 PIX GERADO COM SUCESSO:", data.qr_code);
+        console.log("COPIA E COLA:", data.qr_code_base64);
+        alert(`Pedido #${data.orderId} criado! Abra o Console (F12) para pegar o código Pix.`);
+        clearCart(); // Limpa o carrinho após sucesso
+      } else {
+        console.error("Erro no checkout:", data);
+        alert("Erro ao gerar Pix. Verifique o console.");
+      }
+    } catch (error) {
+      console.error("Erro de rede:", error);
+      alert("Erro ao conectar com o servidor.");
     }
   };
 
