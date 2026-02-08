@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import dbConnect from "@/lib/mongodb";
-import Order from "@/models/Order"; // Importa seu modelo atualizado
+import { connectToDatabase } from "@/lib/mongodb"; // <--- CORREÇÃO AQUI (Com chaves {})
+import Order from "@/models/Order";
 
 // Configuração do Mercado Pago
 const client = new MercadoPagoConfig({
@@ -10,64 +10,49 @@ const client = new MercadoPagoConfig({
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const { cart, customer } = await request.json();
 
-    // 1. Calcula o total (Segurança: backend calcula)
-    let total = 0;
-    body.cart.forEach((item: any) => {
-      total += item.price * item.quantity;
-    });
+    // Conecta no Banco
+    await connectToDatabase(); // <--- CORREÇÃO AQUI (Nome novo)
 
-    // 2. Prepara o pagamento no Mercado Pago
-    const payment = new Payment(client);
-    const paymentData = {
-      transaction_amount: total,
-      description: `Pedido Loop Donuts - ${new Date().toLocaleTimeString()}`,
-      payment_method_id: "pix",
-      payer: {
-        email: "cliente@email.com", // Email genérico por enquanto
-        first_name: "Cliente",
-      },
-    };
+    // Calcula o total (Segurança: recalcular no back para evitar fraudes)
+    const total = cart.reduce((acc: number, item: any) => acc + item.price * item.quantity, 0);
 
-    const mpResponse = await payment.create({ body: paymentData });
-
-    // 3. Salva no Banco de Dados (USANDO O SEU SCHEMA NOVO)
-    await dbConnect();
-    
-    // ... dentro de api/checkout/route.ts ...
-
+    // 1. Cria o Pedido no nosso Banco (Status: Pendente)
     const newOrder = await Order.create({
-      // O backend deve ler o objeto customer inteiro que enviamos agora
-      customer: {
-        name: body.customer?.name || "Cliente", 
-        phone: body.customer?.phone || "000000000",
-        address: body.customer?.address || "Retirada",
-        neighborhood: body.customer?.neighborhood || "Centro",
-      },
-      // ...
-      // Estrutura dos Itens
-      items: body.cart.map((item: any) => ({
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-      total: total, // ✅ Agora bate com o Schema (antes era totalAmount)
-      paymentId: mpResponse.id!.toString(),
+      customer: customer || { name: "Cliente Site" },
+      items: cart,
+      total,
       status: "pending",
     });
 
-    console.log(`✅ Pedido criado: ${newOrder._id}`);
+    // 2. Cria a Preferência de Pagamento no Mercado Pago
+    const payment = new Payment(client);
 
-    return NextResponse.json(
-      {
-        qr_code: mpResponse.point_of_interaction?.transaction_data?.qr_code,
-        qr_code_base64: mpResponse.point_of_interaction?.transaction_data?.qr_code_base64,
-        id: mpResponse.id,
-        orderId: newOrder._id,
+    const paymentData = await payment.create({
+      body: {
+        transaction_amount: total,
+        description: `Pedido #${newOrder._id} - Loop Donuts`,
+        payment_method_id: "pix",
+        payer: {
+          email: customer?.email || "email@teste.com",
+          first_name: customer?.name || "Cliente",
+        },
+        external_reference: newOrder._id.toString(), // <--- Link entre MP e nosso Banco
       },
-      { status: 201 }
-    );
+    });
+
+    // 3. Salva o ID do pagamento no pedido
+    newOrder.paymentId = paymentData.id?.toString();
+    await newOrder.save();
+
+    // 4. Retorna o QR Code para o Frontend
+    return NextResponse.json({
+      orderId: newOrder._id,
+      qr_code: paymentData.point_of_interaction?.transaction_data?.qr_code,
+      qr_code_base64: paymentData.point_of_interaction?.transaction_data?.qr_code_base64,
+    });
+
   } catch (error) {
     console.error("Erro no Checkout:", error);
     return NextResponse.json(

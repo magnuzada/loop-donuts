@@ -1,63 +1,83 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mongodb"; // <--- CORREÇÃO: Importação com chaves {}
 import Product from "@/models/Product";
 
-// Definição do tipo para o Next.js 15+
-type Props = {
-  params: Promise<{ id: string }>;
-};
+// Interface para definir o formato dos params (Next.js 14)
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
 
-// DELETE: Apagar um produto
-export async function DELETE(req: Request, props: Props) {
+// GET: Buscar um produto específico pelo ID
+export async function GET(request: Request, { params }: RouteParams) {
   try {
-    await dbConnect();
-    
-    // ✅ CORREÇÃO: Aguardamos o params antes de usar
-    const params = await props.params;
-    const id = params.id;
+    await connectToDatabase(); // <--- CORREÇÃO: Nome da função atualizado
 
-    const deleted = await Product.findByIdAndDelete(id);
+    const product = await Product.findById(params.id);
 
-    if (!deleted) {
+    if (!product) {
       return NextResponse.json(
-        { success: false, message: "Produto não encontrado" },
+        { message: "Produto não encontrado" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, message: "Produto excluído!" });
-  } catch (error: any) {
+    return NextResponse.json(product);
+  } catch (error) {
     return NextResponse.json(
-      { success: false, message: error.message },
+      { message: "Erro ao buscar produto" },
       { status: 500 }
     );
   }
 }
 
-// PUT: Atualizar um produto (Editar)
-export async function PUT(req: Request, props: Props) {
+// PUT: Atualizar um produto
+export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    await dbConnect();
-    
-    // ✅ CORREÇÃO: Aguardamos o params aqui também
-    const params = await props.params;
-    const id = params.id;
-    
-    const body = await req.json();
+    const body = await request.json();
+    await connectToDatabase();
 
-    const updated = await Product.findByIdAndUpdate(id, body, {
-      new: true, // Retorna o dado novo
-      runValidators: true,
-    });
+    const updatedProduct = await Product.findByIdAndUpdate(
+      params.id,
+      body,
+      { new: true } // Retorna o produto atualizado
+    );
 
-    if (!updated) {
-      return NextResponse.json({ success: false }, { status: 404 });
+    if (!updatedProduct) {
+      return NextResponse.json(
+        { message: "Produto não encontrado para atualização" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
+    return NextResponse.json(updatedProduct);
+  } catch (error) {
     return NextResponse.json(
-      { success: false, message: error.message },
+      { message: "Erro ao atualizar produto" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: Remover um produto
+export async function DELETE(request: Request, { params }: RouteParams) {
+  try {
+    await connectToDatabase();
+
+    const deletedProduct = await Product.findByIdAndDelete(params.id);
+
+    if (!deletedProduct) {
+      return NextResponse.json(
+        { message: "Produto não encontrado para remoção" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ message: "Produto removido com sucesso" });
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Erro ao deletar produto" },
       { status: 500 }
     );
   }

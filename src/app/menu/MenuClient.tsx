@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
-import { ProductCard } from "@/components/ProductCard";
+import ProductCard from "@/components/ProductCard";
 import { LayoutGrid, List, Search } from "lucide-react"; // Importando ícones
 
 export default function MenuClient({ products }: { products: any[] }) {
@@ -86,8 +86,10 @@ export default function MenuClient({ products }: { products: any[] }) {
             {filteredItems.map((item) => (
               <div key={item._id} className="w-full">
                 <ProductCard 
-                  product={item}     // Passamos o objeto INTEIRO agora
-                  viewMode={viewMode} // Passamos o modo de visualização
+                  name={item.name}
+                  description={item.description}
+                  price={item.price}
+                  image={item.image}
                 />
               </div>
             ))}

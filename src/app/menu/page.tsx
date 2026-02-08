@@ -1,11 +1,11 @@
-import dbConnect from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import MenuClient from "./MenuClient";
 
 export const dynamic = "force-dynamic"; // Garante dados sempre frescos
 
 export default async function MenuPage() {
-  await dbConnect();
+  await connectToDatabase();
 
   // ATENÇÃO AQUI 👇
   // Agora buscamos produtos que:
