@@ -4,7 +4,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
   throw new Error(
-    'Por favor, defina a variável MONGODB_URI dentro do arquivo .env.local'
+    'Por favor, defina a variável MONGODB_URI no arquivo .env.local'
   );
 }
 
@@ -13,45 +13,27 @@ if (!MONGODB_URI) {
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
-interface MongooseCache {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-}
-
-// Adiciona tipagem ao objeto global do Node.js
-declare global {
-  var mongoose: MongooseCache | undefined;
-}
-
-let cached = global.mongoose;
+let cached = (global as any).mongoose;
 
 if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+  cached = (global as any).mongoose = { conn: null, promise: null };
 }
 
-async function dbConnect() {
-  if (cached!.conn) {
-    return cached!.conn;
+// AQUI ESTÁ A CORREÇÃO: Exportando a função com o nome correto
+export async function connectToDatabase() {
+  if (cached.conn) {
+    return cached.conn;
   }
 
-  if (!cached!.promise) {
+  if (!cached.promise) {
     const opts = {
       bufferCommands: false,
     };
 
-    cached!.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
       return mongoose;
     });
   }
-
-  try {
-    cached!.conn = await cached!.promise;
-  } catch (e) {
-    cached!.promise = null;
-    throw e;
-  }
-
-  return cached!.conn;
+  cached.conn = await cached.promise;
+  return cached.conn;
 }
-
-export default dbConnect;
