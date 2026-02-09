@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { Payment, Preference } from "mercadopago";
+import { MercadoPagoConfig, Preference } from "mercadopago"; // CORREÇÃO 1: Importar Config
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 
-const client = new Payment({ accessToken: process.env.MP_ACCESS_TOKEN! });
+// CORREÇÃO 2: Inicializar com MercadoPagoConfig (Isso resolve o erro de Type)
+const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 const preference = new Preference(client);
 
 export async function POST(request: Request) {
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
     }
-    if (!customer.phone) {
+    if (!customer?.phone) {
       return NextResponse.json({ error: "Telefone é obrigatório" }, { status: 400 });
     }
 
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
         title: realProduct.name,
         quantity: quantity,
         unit_price: Number(realPrice),
+        currency_id: "BRL", // Boa prática adicionar
       });
 
       itemsForDatabase.push({
@@ -65,18 +67,15 @@ export async function POST(request: Request) {
     }
 
     // 3. E-MAIL INVISÍVEL (Técnica do WhatsApp)
-    // Remove tudo que não for número (espaços, traços, parênteses)
     const cleanPhone = customer.phone.replace(/\D/g, "");
-    // Gera: 32999999999@cliente.loopdonuts.com
     const technicalEmail = `${cleanPhone}@cliente.loopdonuts.com`;
 
     // 4. Cria a Preferência no Mercado Pago
-    // Adicione o ": any" para o TypeScript parar de reclamar
-    const result: any = await preference.create({
+    const result = await preference.create({
       body: {
         items: itemsForMercadoPago,
         payer: {
-          email: technicalEmail, // Mercado Pago fica feliz ✅
+          email: technicalEmail,
         },
         payment_methods: {
           excluded_payment_types: [{ id: "credit_card" }],
@@ -86,16 +85,17 @@ export async function POST(request: Request) {
         metadata: {
           customer_name: customer.name,
           customer_phone: customer.phone,
+          db_order_id: "pending", // Placeholder, podemos atualizar depois se precisar
         }
       },
     });
 
-    // 5. Salva o Pedido
+    // 5. Salva o Pedido no Banco
     const newOrder = await Order.create({
       customer: {
         name: customer.name,
         phone: customer.phone,
-        email: technicalEmail, // Salva o gerado para registro
+        email: technicalEmail,
         address: customer.address,
         neighborhood: customer.neighborhood,
       },
@@ -107,8 +107,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      qr_code: result.point_of_interaction?.transaction_data?.qr_code,
-      qr_code_base64: result.point_of_interaction?.transaction_data?.qr_code_base64,
+      url: result.init_point, // URL para checkout redirecionado (se usar)
+      id: result.id,          // ID da preferência para abrir o modal/checkout pro
       orderId: newOrder._id,
     });
 
