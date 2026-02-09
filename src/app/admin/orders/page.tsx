@@ -1,33 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { Package, Clock, CheckCircle, XCircle, MapPin, Phone, RefreshCw } from "lucide-react";
 
-interface OrderType {
+interface OrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface Order {
   _id: string;
   customer: {
     name: string;
     phone: string;
+    email: string;
+    address: string;
     neighborhood: string;
   };
-  items: any[];
+  items: OrderItem[];
   total: number;
   status: string;
   createdAt: string;
 }
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState<OrderType[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Função para buscar dados
+  // Função de buscar pedidos
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/orders"); // Chama a API
+      const res = await fetch("/api/orders");
       const data = await res.json();
       setOrders(data);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error("Erro ao buscar pedidos:", error);
     } finally {
       setLoading(false);
     }
@@ -37,89 +46,128 @@ export default function AdminOrders() {
     fetchOrders();
   }, []);
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-orange-50">
-      <div className="text-xl font-bold text-orange-600 animate-bounce">🍩 Carregando Pedidos...</div>
-    </div>
-  );
+  // Formata Data: 08/02/2026 14:30
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  };
+
+  // Formata Dinheiro: R$ 50,00
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  };
+
+  // Define a cor do Status
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "approved": return "bg-green-100 text-green-700 border-green-200";
+      case "pending": return "bg-yellow-100 text-yellow-700 border-yellow-200";
+      case "rejected": return "bg-red-100 text-red-700 border-red-200";
+      default: return "bg-gray-100 text-gray-700 border-gray-200";
+    }
+  };
+
+  // Traduz o Status
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "approved": return "PAGO";
+      case "pending": return "PENDENTE";
+      case "rejected": return "CANCELADO";
+      default: return status;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-orange-50/30 p-6">
-      <div className="max-w-7xl mx-auto">
-        
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
         {/* Cabeçalho */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-black text-gray-800 tracking-tight">
-              Torre de Controle 🗼
-            </h1>
-            <p className="text-gray-500">Gerencie as vendas da Loop Donuts</p>
+            <h1 className="text-3xl font-black text-gray-800">Pedidos 📦</h1>
+            <p className="text-gray-500">Acompanhe as vendas em tempo real</p>
           </div>
           <button 
             onClick={fetchOrders}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-full font-bold shadow-md transition-all active:scale-95"
+            className="bg-white hover:bg-gray-50 text-gray-600 px-4 py-2 rounded-xl border border-gray-200 shadow-sm flex items-center gap-2 transition-all"
           >
-            🔄 Atualizar Lista
+            <RefreshCw size={18} /> Atualizar
           </button>
         </div>
-        
-        {/* Tabela */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-orange-100">
-          <table className="w-full text-left">
-            <thead className="bg-orange-500 text-white">
-              <tr>
-                <th className="p-4 font-bold">Data</th>
-                <th className="p-4 font-bold">Cliente</th>
-                <th className="p-4 font-bold">Bairro</th>
-                <th className="p-4 font-bold">Pedido</th>
-                <th className="p-4 font-bold">Total</th>
-                <th className="p-4 font-bold text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {orders.map((order) => (
-                <tr key={order._id} className="hover:bg-orange-50 transition-colors group">
-                  <td className="p-4 text-sm text-gray-600 font-mono">
-                    {new Date(order.createdAt).toLocaleDateString('pt-BR')}
-                    <div className="text-xs opacity-50">#{order._id.slice(-4)}</div>
-                  </td>
-                  <td className="p-4 font-bold text-gray-800 capitalize">
-                    {order.customer?.name}
-                    <div className="text-xs text-gray-400 font-normal">{order.customer?.phone}</div>
-                  </td>
-                  <td className="p-4 text-gray-600 text-sm">
-                    {order.customer?.neighborhood}
-                  </td>
-                  <td className="p-4">
-                    <ul className="text-sm text-gray-600 space-y-1">
+
+        {/* Lista de Pedidos */}
+        {loading ? (
+          <div className="text-center py-20 text-gray-400 animate-pulse">Carregando pedidos...</div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <Package size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 font-medium">Nenhum pedido recebido ainda.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {orders.map((order) => (
+              <div key={order._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                
+                {/* Cabeçalho do Card */}
+                <div className="bg-gray-50 p-4 border-b border-gray-100 flex flex-wrap justify-between items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-gray-400">#{order._id.slice(-6).toUpperCase()}</span>
+                    <span className="text-sm text-gray-500 flex items-center gap-1">
+                      <Clock size={14} /> {formatDate(order.createdAt)}
+                    </span>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.status)} flex items-center gap-1`}>
+                    {order.status === 'approved' ? <CheckCircle size={12} /> : <Clock size={12} />}
+                    {getStatusLabel(order.status)}
+                  </div>
+                </div>
+
+                <div className="p-6 grid md:grid-cols-2 gap-8">
+                  {/* Coluna 1: Cliente */}
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Cliente</h3>
+                    <p className="font-bold text-gray-800 text-lg mb-1">{order.customer.name}</p>
+                    
+                    <a 
+                      href={`https://wa.me/55${order.customer.phone.replace(/\D/g, '')}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-green-600 hover:text-green-700 text-sm flex items-center gap-2 mb-3 font-medium"
+                    >
+                      <Phone size={14} /> {order.customer.phone}
+                    </a>
+
+                    <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 flex items-start gap-2">
+                      <MapPin size={16} className="mt-1 shrink-0" />
+                      <div>
+                        <p className="font-bold">{order.customer.neighborhood}</p>
+                        <p>{order.customer.address}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Coluna 2: Itens */}
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Itens do Pedido</h3>
+                    <ul className="space-y-2 mb-4">
                       {order.items.map((item, idx) => (
-                        <li key={idx}>
-                          <span className="font-bold text-orange-600">{item.quantity}x</span> {item.name}
+                        <li key={idx} className="flex justify-between text-sm text-gray-600 border-b border-gray-50 pb-2 last:border-0">
+                          <span>{item.quantity}x <span className="font-medium text-gray-800">{item.name}</span></span>
+                          <span>{formatCurrency(item.price * item.quantity)}</span>
                         </li>
                       ))}
                     </ul>
-                  </td>
-                  <td className="p-4 font-black text-gray-800 text-lg">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}
-                  </td>
-                  <td className="p-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${
-                      order.status === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                    }`}>
-                      {order.status === 'paid' ? 'PAGO' : 'PENDENTE'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {orders.length === 0 && (
-            <div className="p-12 text-center text-gray-400">
-              Nenhum pedido encontrado ainda.
-            </div>
-          )}
-        </div>
+                    <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                      <span className="font-bold text-gray-600">Total</span>
+                      <span className="font-black text-2xl text-pink-600">{formatCurrency(order.total)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
