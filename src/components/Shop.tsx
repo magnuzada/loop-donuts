@@ -35,7 +35,14 @@ export default function Shop({ products }: { products: any[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cart,
-          customer: { name: "Cliente Teste", email: "teste@loop.com" }
+          // 👇 AQUI ESTAVA O ERRO! Adicionei os campos obrigatórios:
+          customer: { 
+            name: "Cliente Teste", 
+            email: "teste@loop.com",
+            phone: "32999999999",         // <--- Adicionado
+            address: "Rua de Teste, 123", // <--- Adicionado
+            neighborhood: "Centro"        // <--- Adicionado (O Banco exige!)
+          }
         }),
       });
 
@@ -44,10 +51,10 @@ export default function Shop({ products }: { products: any[] }) {
       if (data.qr_code) {
         console.log("💰 PIX GERADO:", data.qr_code);
         alert(`Pedido #${data.orderId} criado! Pague com o Pix no Console (F12).`);
-        clearCart(); // Agora vai funcionar!
+        clearCart(); // Limpa o carrinho
       } else {
         console.error("Erro no checkout:", data);
-        alert("Erro ao gerar Pix.");
+        alert("Erro ao gerar Pix. Veja o console.");
       }
     } catch (error) {
       console.error("Erro de rede:", error);

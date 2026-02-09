@@ -2,64 +2,95 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// Tipagem do Item
-interface CartItem {
-  id: string;
+interface Product {
+  _id?: string;
+  id?: string;
   name: string;
+  description?: string;
   price: number;
-  image: string;
-  quantity: number;
+  image?: string;
+  quantity?: number;
 }
 
-// O que o Contexto oferece para o site
-interface CartContextType {
-  cart: CartItem[];
-  addToCart: (product: any) => void;
+interface CartContextData {
+  cart: Product[];
+  addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   total: number;
   cartCount: number;
 }
 
-const CartContext = createContext<CartContextType>({} as CartContextType);
+const CartContext = createContext<CartContextData>({} as CartContextData);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<Product[]>([]);
 
-  // 1. Carregar carrinho salvo ao abrir o site
+  // Carrega do LocalStorage
   useEffect(() => {
-    const savedCart = localStorage.getItem("loop-cart");
-    if (savedCart) setCart(JSON.parse(savedCart));
+    const storedCart = localStorage.getItem("@LoopDonuts:cart");
+    if (storedCart) {
+      setCart(JSON.parse(storedCart));
+    }
   }, []);
 
-  // 2. Salvar carrinho sempre que mudar
+  // Salva no LocalStorage
   useEffect(() => {
-    localStorage.setItem("loop-cart", JSON.stringify(cart));
+    localStorage.setItem("@LoopDonuts:cart", JSON.stringify(cart));
   }, [cart]);
 
-  // Função de Adicionar
-  const addToCart = (product: any) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
+  const addToCart = (product: Product) => {
+    setCart((prevCart) => {
+      // Tenta achar se esse produto JÁ existe no carrinho
+      const existingItemIndex = prevCart.findIndex((item) => {
+        // 1. Tenta comparar pelo ID (se existir)
+        const itemId = item._id || item.id;
+        const productId = product._id || product.id;
+        
+        if (itemId && productId && itemId === productId) {
+          return true; // É o mesmo ID!
+        }
+
+        // 2. SALVA-VIDAS: Se não tiver ID, compara pelo NOME exato
+        if (item.name === product.name) {
+          return true; // É o mesmo Nome!
+        }
+
+        return false; // São produtos diferentes
+      });
+
+      // LÓGICA DE ADIÇÃO
+      if (existingItemIndex >= 0) {
+        // CENÁRIO A: Produto Repetido -> Aumenta Quantidade
+        const newCart = [...prevCart];
+        newCart[existingItemIndex].quantity = (newCart[existingItemIndex].quantity || 1) + 1;
+        return newCart;
+      } else {
+        // CENÁRIO B: Produto Novo -> Adiciona na Lista
+        // Gera um ID temporário se não tiver, pra evitar bugs futuros
+        const safeProduct = {
+          ...product,
+          id: product._id || product.id || `temp-${Date.now()}`,
+          quantity: 1
+        };
+        return [...prevCart, safeProduct];
       }
-      return [...prev, { ...product, quantity: 1 }];
     });
   };
 
-  // Função de Remover
-  const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((item) => item.id !== id));
+  const removeFromCart = (productId: string) => {
+    setCart((prevCart) => prevCart.filter((item) => (item._id || item.id) !== productId));
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+  };
 
-  // Cálculos automáticos
-  const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const total = cart.reduce((acc, item) => {
+    return acc + item.price * (item.quantity || 1);
+  }, 0);
+
+  const cartCount = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   return (
     <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total, cartCount }}>
@@ -68,5 +99,4 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook para usar o carrinho em qualquer lugar
 export const useCart = () => useContext(CartContext);

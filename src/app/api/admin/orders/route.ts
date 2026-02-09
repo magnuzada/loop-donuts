@@ -1,20 +1,17 @@
- import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import Order from "@/models/Order"; // Certifique-se que o Model de Order existe
+import Order from "@/models/Order";
+
+// Garante que não faça cache (sempre busca dados novos)
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     await connectToDatabase();
-
-    // Busca todos os pedidos e ordena do mais recente para o mais antigo
+    // Busca os pedidos e ordena do mais novo para o mais antigo
     const orders = await Order.find().sort({ createdAt: -1 });
-
     return NextResponse.json(orders);
   } catch (error) {
-    console.error("Erro ao buscar pedidos:", error);
-    return NextResponse.json(
-      { error: "Falha ao carregar pedidos." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erro ao buscar pedidos" }, { status: 500 });
   }
 }
