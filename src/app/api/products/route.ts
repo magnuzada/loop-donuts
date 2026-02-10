@@ -12,6 +12,8 @@ export async function GET() {
   }
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     await connectToDatabase();
