@@ -4,19 +4,22 @@ import { useState } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
-import { LayoutGrid, List, Search } from "lucide-react"; // Importando ícones
+import { LayoutGrid, List, Search } from "lucide-react";
 
 export default function MenuClient({ products }: { products: any[] }) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // Estado para Grade ou Lista
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // 1. Extrai categorias únicas dos produtos
-  const categories = ["Todos", ...Array.from(new Set(products.map((p) => p.category)))];
+  // Debug: Vamos ver no console do navegador se os produtos chegaram
+  console.log("MenuClient recebeu:", products);
+
+  // 1. Extrai categorias únicas (Proteção contra produtos sem categoria)
+  const categories = ["Todos", ...Array.from(new Set(products.map((p) => p.category || "Outros")))];
 
   // 2. Filtra os itens
   const filteredItems = selectedCategory === "Todos"
     ? products
-    : products.filter((item) => item.category === selectedCategory);
+    : products.filter((item) => (item.category || "Outros") === selectedCategory);
 
   return (
     <main className="min-h-screen bg-cream">
@@ -24,7 +27,13 @@ export default function MenuClient({ products }: { products: any[] }) {
 
       <div className="container mx-auto px-6 pt-32 md:pt-40 pb-20">
         
-        {/* CABEÇALHO DO CARDÁPIO: Título + Controles */}
+        {/* --- ÁREA DE DEBUG (Se aparecer 0 aqui, o banco não mandou nada) --- */}
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8 text-xs font-mono">
+          DEBUG: Recebidos {products.length} produtos. Mostrando {filteredItems.length} nesta categoria.
+        </div>
+        {/* ------------------------------------------------------------------ */}
+
+        {/* CABEÇALHO */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 border-b border-gray-200 pb-6">
           <div>
             <h1 className="text-4xl font-black uppercase text-gray-900 italic tracking-tighter">
@@ -33,23 +42,23 @@ export default function MenuClient({ products }: { products: any[] }) {
             <p className="text-gray-500 mt-1">Escolha seus favoritos e monte sua caixa!</p>
           </div>
 
-          {/* Botões de Visualização (Grade vs Lista) */}
+          {/* Botões de Visualização */}
           <div className="flex bg-white p-1 rounded-lg border border-gray-300 shadow-sm">
              <button
                 onClick={() => setViewMode("grid")}
                 className={`p-2 rounded-md transition-all ${
-                  viewMode === "grid" ? "bg-brand-500 text-white shadow-md" : "text-gray-400 hover:text-gray-600"
+                  viewMode === "grid" ? "bg-brand text-white shadow-md" : "text-gray-400 hover:text-gray-600"
                 }`}
-                title="Visualização em Grade"
+                title="Grade"
              >
                 <LayoutGrid size={20} />
              </button>
              <button
                 onClick={() => setViewMode("list")}
                 className={`p-2 rounded-md transition-all ${
-                  viewMode === "list" ? "bg-brand-500 text-white shadow-md" : "text-gray-400 hover:text-gray-600"
+                  viewMode === "list" ? "bg-brand text-white shadow-md" : "text-gray-400 hover:text-gray-600"
                 }`}
-                title="Visualização em Lista"
+                title="Lista"
              >
                 <List size={20} />
              </button>
@@ -73,24 +82,27 @@ export default function MenuClient({ products }: { products: any[] }) {
           ))}
         </div>
 
-        {/* Grid de Produtos - AQUI A MÁGICA ACONTECE */}
+        {/* Grid de Produtos */}
         {filteredItems.length > 0 ? (
           <div 
             className={`
               ${viewMode === "grid" 
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8" // Estilo Grade
-                : "flex flex-col gap-6 max-w-4xl mx-auto" // Estilo Lista (Centralizado)
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8" 
+                : "flex flex-col gap-6 max-w-4xl mx-auto"
               }
             `}
           >
             {filteredItems.map((item) => (
-              <div key={item._id} className="w-full">
+              <div key={item._id || item.id} className="w-full">
+                {/* --- A CORREÇÃO ESTÁ AQUI: Passando o ID --- */}
                 <ProductCard 
+                  id={item._id || item.id} 
                   name={item.name}
                   description={item.description}
                   price={item.price}
                   image={item.image}
                 />
+                {/* ------------------------------------------- */}
               </div>
             ))}
           </div>
@@ -99,7 +111,9 @@ export default function MenuClient({ products }: { products: any[] }) {
              <div className="inline-block p-4 bg-gray-100 rounded-full mb-4">
                 <Search size={40} className="text-gray-400" />
              </div>
-             <p className="text-xl font-bold text-gray-600">Ops! Nenhum donut encontrado nesta categoria.</p>
+             <p className="text-xl font-bold text-gray-600">
+               Ops! Nenhum donut encontrado em "{selectedCategory}".
+             </p>
           </div>
         )}
       </div>
