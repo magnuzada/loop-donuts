@@ -5,22 +5,41 @@ import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import { Trash2, ArrowRight, Copy, CheckCircle, CreditCard, Banknote } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function CartPage() {
   const { cart, removeFromCart, total, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [paymentMethod, setPaymentMethod] = useState("pix"); // Mantido para compatibilidade visual, mas o backend decide
   const [pixCode, setPixCode] = useState("");
   const [qrCodeImage, setQrCodeImage] = useState("");
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState(""); // Para redirecionamento (cartão)
 
+  // Estado do formulário com novos campos
   const [formData, setFormData] = useState({
-    name: "", phone: "", address: "", neighborhood: "",
+    name: "",
+    phone: "",
+    email: "",      // Novo
+    docNumber: "",  // Novo (CPF)
+    address: "",
+    neighborhood: "",
   });
 
+  // 1. CARREGAR DADOS SALVOS (Memória do Cliente)
+  useEffect(() => {
+    const savedData = localStorage.getItem("loop_customer_data");
+    if (savedData) {
+      setFormData(JSON.parse(savedData));
+    }
+  }, []);
+
+  // 2. SALVAR ENQUANTO DIGITA (Auto-Save)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const newData = { ...formData, [name]: value };
+    setFormData(newData);
+    localStorage.setItem("loop_customer_data", JSON.stringify(newData));
   };
 
   const handleCopyPix = () => {
@@ -29,38 +48,50 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
+    // Validação básica
     if (!formData.name || !formData.phone || !formData.address) {
-      alert("Preencha os dados de entrega! 🚚");
+      alert("Por favor, preencha os dados de entrega obrigatórios! 🚚");
       return;
     }
-    if (paymentMethod !== "pix") {
-      alert("Apenas Pix disponível para teste! 🍩");
-      return;
-    }
+
     setLoading(true);
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart, customer: formData }),
+        body: JSON.stringify({
+          cart,
+          customer: formData // Envia todos os dados, incluindo email e cpf se tiver
+        }),
       });
+
       const data = await res.json();
-      if (data.qr_code_base64) {
+
+      if (data.url) {
+        // Fluxo de redirecionamento (Cartão/Checkout Pro)
+        setCheckoutUrl(data.url);
+        window.location.href = data.url; // Redireciona para o Mercado Pago
+        clearCart();
+      } else if (data.qr_code_base64) {
+        // Fluxo Pix Direto (Legado/Transparente)
         setPixCode(data.qr_code);
         setQrCodeImage(data.qr_code_base64);
         setOrderSuccess(true);
         clearCart();
       } else {
-        alert("Erro no Mercado Pago.");
+        alert("Erro ao iniciar pagamento. Tente novamente.");
+        console.error("Erro MP:", data);
       }
     } catch (error) {
       console.error(error);
-      alert("Erro ao processar.");
+      alert("Erro de conexão ao processar pedido.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Tela de Sucesso (Apenas para Pix Direto - Checkout Pro redireciona)
   if (orderSuccess) {
     return (
       <main className="min-h-screen bg-orange-50 flex flex-col">
@@ -103,7 +134,7 @@ export default function CartPage() {
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
             
-            {/* ESQUERDA */}
+            {/* ESQUERDA - DADOS E ITENS */}
             <div className="flex-1 space-y-6">
               <div className="bg-white rounded-3xl p-6 border-2 border-black shadow-card">
                 <h2 className="font-black text-xl mb-4 uppercase">Seus Donuts</h2>
@@ -116,8 +147,7 @@ export default function CartPage() {
                         </div>
                         <div>
                           <h3 className="font-bold">{item.name}</h3>
-                          {/* LISTAGEM PRINCIPAL */}
-                          <p className="text-sm text-gray-500">{item.quantity}x R$ {item.price.toFixed(2)}</p>
+                          <p className="text-sm text-gray-500">{item.quantity}x R$ {Number(item.price).toFixed(2)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
@@ -129,44 +159,58 @@ export default function CartPage() {
                 </ul>
               </div>
 
+              {/* FORMULÁRIO DE ENTREGA */}
               <div className="bg-white rounded-3xl p-6 border-2 border-black shadow-card">
-                <h2 className="font-black text-xl mb-4 uppercase">Entrega</h2>
+                <h2 className="font-black text-xl mb-4 uppercase">Dados de Entrega</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input name="name" onChange={handleChange} placeholder="Seu Nome" className="p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
-                  <input name="phone" onChange={handleChange} placeholder="WhatsApp" className="p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
-                  <input name="address" onChange={handleChange} placeholder="Endereço" className="md:col-span-2 p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
-                  <input name="neighborhood" onChange={handleChange} placeholder="Bairro" className="md:col-span-2 p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                  <div className="col-span-1 md:col-span-2">
+                     <label className="text-xs font-bold text-gray-500 ml-1">Nome Completo *</label>
+                     <input name="name" value={formData.name} onChange={handleChange} placeholder="Ex: João Silva" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 ml-1">WhatsApp *</label>
+                    <input name="phone" value={formData.phone} onChange={handleChange} placeholder="(00) 00000-0000" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                  </div>
+
+                   {/* NOVOS CAMPOS OPCIONAIS (Mas salvos) */}
+                   <div>
+                    <label className="text-xs font-bold text-gray-500 ml-1">CPF (Opcional)</label>
+                    <input name="docNumber" value={formData.docNumber} onChange={handleChange} placeholder="000.000.000-00" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="text-xs font-bold text-gray-500 ml-1">E-mail (Opcional - Para NF)</label>
+                    <input name="email" value={formData.email} onChange={handleChange} placeholder="seu@email.com" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="text-xs font-bold text-gray-500 ml-1">Endereço Completo *</label>
+                    <input name="address" value={formData.address} onChange={handleChange} placeholder="Rua, Número, Complemento" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                  </div>
+                  
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="text-xs font-bold text-gray-500 ml-1">Bairro *</label>
+                    <input name="neighborhood" value={formData.neighborhood} onChange={handleChange} placeholder="Ex: Centro" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                  </div>
+                </div>
+                <div className="mt-4 bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800 border border-yellow-200 text-center">
+                  💡 Seus dados ficam salvos automaticamente para a próxima vez!
                 </div>
               </div>
             </div>
 
-            {/* DIREITA - RESUMO ORGANIZADO */}
+            {/* DIREITA - PAGAMENTO E RESUMO */}
             <div className="w-full lg:w-96 h-fit sticky top-32">
               <div className="bg-white rounded-3xl p-6 border-2 border-black shadow-card">
                 <h2 className="font-black text-xl mb-6 uppercase">Pagamento</h2>
                 
-                <div className="flex gap-2 mb-6">
+                {/* Botões visuais - O Backend controla as opções reais agora */}
+                <div className="flex gap-2 mb-6 opacity-80 pointer-events-none">
                   <button className="flex-1 py-3 rounded-xl border-2 border-black bg-yellow-400 font-bold text-sm">PIX</button>
-                  <button disabled className="flex-1 py-3 rounded-xl border-2 border-gray-100 text-gray-300 font-bold text-[10px]">CRÉDITO</button>
+                  <button className="flex-1 py-3 rounded-xl border-2 border-black bg-gray-100 text-gray-800 font-bold text-sm">CARTÃO</button>
                 </div>
-
-                {/* --- AQUI ESTÁ A LISTA QUE VOCÊ QUERIA --- */}
-                <div className="mb-6 border-t-2 border-dashed border-gray-200 pt-4 bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Resumo do Pedido</p>
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                    {cart.map((item) => (
-                      <div key={item.id || item._id} className="flex justify-between text-sm border-b border-gray-100 pb-1 last:border-0">
-                        <span className="text-gray-600 truncate max-w-[180px]">
-                          <span className="font-bold text-blue-600 mr-2">{item.quantity}x</span> 
-                          {item.name}
-                        </span>
-                        <span className="font-mono text-gray-500 whitespace-nowrap">
-                          R$ {(item.price * (item.quantity || 1)).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <p className="text-xs text-center text-gray-500 mb-6 -mt-4">Escolha a forma de pagamento na próxima tela.</p>
 
                 <div className="border-t-2 border-black pt-4 mb-6">
                   <div className="flex justify-between text-2xl font-black">
@@ -175,8 +219,22 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <button onClick={handleCheckout} disabled={loading} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl border-2 border-black shadow-button active:translate-y-1 active:shadow-none transition-all disabled:opacity-50">
-                  {loading ? "PROCESSANDO..." : "FINALIZAR PEDIDO"}
+                <button 
+                  onClick={handleCheckout} 
+                  disabled={loading} 
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl border-2 border-black shadow-button active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                      PROCESSANDO...
+                    </>
+                  ) : (
+                    <>
+                      <span>IR PARA PAGAMENTO</span>
+                      <ArrowRight size={20} />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
