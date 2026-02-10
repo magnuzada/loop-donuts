@@ -2,27 +2,40 @@ import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import MenuClient from "./MenuClient";
 
-export const dynamic = "force-dynamic"; // Garante dados sempre frescos
+// 1. O segredo para não ter cache velho
+export const dynamic = "force-dynamic";
 
 export default async function MenuPage() {
-  await connectToDatabase();
+  try {
+    // 2. Conecta no Banco
+    await connectToDatabase();
 
-  // ATENÇÃO AQUI 👇
-  // Agora buscamos produtos que:
-  // 1. Tenham estoque MAIOR que 0
-  // 2. E estejam ativos (seja pelo jeito antigo 'isActive' OU pelo novo 'status')
-  const dbProducts = await Product.find({
-    stock: { $gt: 0 },
-    $or: [
-      { isActive: true },      // Jeito antigo
-      { status: "active" }     // Jeito novo
-    ]
-  }).lean();
+    // 3. Busca TUDO o que for ativo (igual a Home)
+    // O .lean() deixa muito mais rápido
+    const dbProducts = await Product.find({ 
+      status: "active" 
+    }).sort({ createdAt: -1 }).lean();
 
-  const products = dbProducts.map((p: any) => ({
-    ...p,
-    _id: p._id.toString(),
-  }));
+    // 4. Prepara os dados (converte ID para texto)
+    const products = dbProducts.map((p: any) => ({
+      ...p,
+      _id: p._id.toString(),
+      id: p._id.toString(), // Garante que funcione se o componente usar 'id' ou '_id'
+      price: Number(p.price) || 0,
+    }));
 
-  return <MenuClient products={products} />;
+    console.log(`Menu carregado com ${products.length} produtos.`);
+
+    // 5. Entrega para a tela
+    return <MenuClient products={products} />;
+    
+  } catch (error) {
+    console.error("Erro ao carregar menu:", error);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-red-500 gap-4">
+        <p className="text-xl font-bold">Ops! Erro ao carregar o cardápio.</p>
+        <p className="text-sm text-gray-500">Tente recarregar a página.</p>
+      </div>
+    );
+  }
 }
