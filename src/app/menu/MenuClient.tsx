@@ -10,9 +10,6 @@ export default function MenuClient({ products }: { products: any[] }) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Debug: Vamos ver no console do navegador se os produtos chegaram
-  console.log("MenuClient recebeu:", products);
-
   // 1. Extrai categorias únicas (Proteção contra produtos sem categoria)
   const categories = ["Todos", ...Array.from(new Set(products.map((p) => p.category || "Outros")))];
 
@@ -27,12 +24,7 @@ export default function MenuClient({ products }: { products: any[] }) {
 
       <div className="container mx-auto px-6 pt-32 md:pt-40 pb-20">
         
-        {/* --- ÁREA DE DEBUG (Se aparecer 0 aqui, o banco não mandou nada) --- */}
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8 text-xs font-mono">
-          DEBUG: Recebidos {products.length} produtos. Mostrando {filteredItems.length} nesta categoria.
-        </div>
-        {/* ------------------------------------------------------------------ */}
-
+        
         {/* CABEÇALHO */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 border-b border-gray-200 pb-6">
           <div>
