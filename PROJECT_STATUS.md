@@ -1,1 +1,50 @@
-🍩 Loop Donuts - Relatório de Auditoria TécnicaData: 09 de Fevereiro de 2026Versão: 2.5 (Correção Lógica do Carrinho & Admin Funcional)Status Geral: ✅ MVP Funcional (Alpha)1. 🏗️ Visão Geral da ArquiteturaO projeto opera sobre uma arquitetura Serverless Fullstack moderna, utilizando o ecossistema React/Next.js para renderização híbrida e MongoDB para persistência.Frontend: Next.js 14.1.0 (App Router) com React Server Components e Client Components.Estilização: Tailwind CSS 3.4 + Lucide React (Ícones).Backend: Next.js API Routes (Serverless Functions) na Vercel.Banco de Dados: MongoDB Atlas gerenciado via Mongoose ODM (v9.1.6).Pagamentos: Integração direta com SDK do Mercado Pago (Pix Transparente).2. ✅ Módulos Implementados & Estáveis🛒 Cliente (Loja & Checkout)Carrinho de Compras (CartContext):Lógica Blindada: Correção crítica implementada para diferenciação de produtos por ID e Nome. O sistema agora agrupa corretamente itens iguais e separa sabores diferentes (ex: 1x Fruta, 1x Chocolate).Persistência: O carrinho é salvo automaticamente no localStorage, mantendo os itens mesmo se o usuário recarregar a página.Interface de Checkout (/cart):Visual: Layout de duas colunas (Esquerda: Itens + Formulário / Direita: Resumo + Pagamento).Resumo Detalhado: A coluna de pagamento exibe a lista item a item ("1x Donut..."), conforme solicitado para clareza do cliente.Feedback: Botões com estados de "Loading" e mensagens de sucesso/erro (substituindo alert nativos em partes críticas).Integração Pix:Geração de QR Code e código "Copia e Cola" funcional via API do Mercado Pago.Tela de "Pedido Recebido" com instruções claras para o usuário.👮 Administrativo (Backoffice)Torre de Controle (/admin/orders):Listagem Real: Tabela conectada ao Banco de Dados, exibindo pedidos em tempo real.Dados Completos: Exibe Data, Cliente, Bairro, Itens (com quantidade) e Status Financeiro.Correção de Arquitetura: Separação correta entre Cliente (page.tsx) e Servidor (route.ts) para evitar vazamento de dados brutos.Design: Interface atualizada com as cores da marca (Laranja/Amarelo) e badges de status.⚙️ Backend & InfraestruturaWebhook de Pagamentos (/api/webhook):Recebe notificações do Mercado Pago.Valida a segurança da transação (consulta ativa à API).Atualiza o status do pedido no banco para paid automaticamente.Conexão Database:Arquivo src/lib/mongodb.ts otimizado para ambiente Serverless (cache de conexão Singleton), prevenindo quedas por excesso de conexões.3. 🚧 Em Desenvolvimento / Pendências Críticas🟡 Melhorias de UX/UI (Não Bloqueantes)Validação de Formulário: O checkout usa validação simples (if !name alert...). Futuramente, implementar Zod ou React Hook Form para mensagens de erro mais amigáveis nos inputs.Segurança do Admin: A rota /admin e /admin/orders ainda é pública. Necessário implementar middleware de autenticação (Login/Senha) antes do lançamento oficial.Tratamento de Erros: Padronizar as mensagens de erro da API para o frontend (ex: usar Toasts em vez de alert em todos os fluxos).4. 🔌 Mapa de Rotas da API (Serverless)MétodoRotaFunçãoStatusPOST/api/webhookProcessa notificações do Mercado Pago✅ EstávelPOST/api/checkoutCria pedido no banco e gera Pix✅ EstávelGET/api/admin/ordersLista todos os pedidos para o painel✅ EstávelGET/api/products(Opcional) Listagem de produtos via API❓ Planejado5. 💾 Camada de Dados (Database)Models:Order: Schema flexível, suportando dados do cliente, array de itens e status de pagamento.Product: Schema definido (Nome, Preço, Categoria, Imagem).Relatório atualizado após a correção do Bug de Identidade dos Produtos e estabilização do Admin.
+# 🍩 Loop Donuts - Relatório de Auditoria Técnica
+
+**Data:** 10 de Fevereiro de 2026
+**Versão:** 2.7 (Definição de Roadmap MVP & Arquitetura Serverless)
+**Status Geral:** ✅ MVP Funcional (Beta)
+
+## 1. 🏗️ Visão Geral da Arquitetura
+O projeto opera sobre uma arquitetura **Serverless Fullstack** moderna, otimizada para evitar problemas de cache em dados transacionais.
+
+*   **Frontend:** Next.js 14.1.0 (App Router) com React Server Components.
+*   **Backend:** Next.js API Routes (Serverless Functions) hospedadas na Vercel.
+*   **Estratégia de Cache:** Utilização estrita de `export const dynamic = 'force-dynamic'` nas rotas de API e páginas de produtos para garantir dados em tempo real e evitar *stale cache*.
+*   **Banco de Dados:** MongoDB Atlas gerenciado via Mongoose ODM (v9.1.6).
+*   **Pagamentos:** Integração direta com SDK do Mercado Pago (Pix Transparente).
+
+## 2. ✅ Funcionalidades Concluídas (Done)
+
+### 🛒 Cliente (Loja & Checkout)
+*   **Catálogo Dinâmico (MongoDB):** Integração completa e estável. Produtos carregados via SSR (Server-Side Rendering) garantindo dados sempre frescos.
+*   **Carrinho de Compras:** Lógica blindada para diferenciação de itens e persistência local.
+*   **Checkout Pix:** Fluxo completo de criação de pedido e geração de pagamento via Mercado Pago.
+
+### 👮 Administrativo (Backoffice)
+*   **Painel Admin (Funcional 1.0):** Dashboard simplificado com acesso rápido a Pedidos e Produtos.
+*   **Torre de Controle:** Visualização de pedidos em tempo real com status financeiro e detalhes do cliente.
+
+## 3. 🐛 Correções de Bugs (Fixed)
+
+*   **Schema Drift (Crítico):** Corrigida a ausência do campo `status` no Schema do Mongoose. Agora todos os produtos nascem como `active` por padrão, corrigindo a filtragem do menu.
+*   **Cache Force-Dynamic:** Resolvido problema de cache estático (ISR) que impedia a atualização de novos produtos. Implementado `force-dynamic` para garantir dados em tempo real.
+*   **Serialização de IDs:** Corrigido erro de hidratação do React ao passar objetos `_id` do MongoDB para Client Components.
+*   **Sanitização de Preços:** Implementada verificação de tipos numéricos para evitar erros de cálculo no carrinho.
+
+## 4. 🗺️ Roadmap & Backlog (Próximos Passos)
+
+###  Prioridade Alta
+*   **Webhook Mercado Pago:** Implementação da rota para receber notificações de pagamento e atualizar o status do pedido (`pending` -> `paid`) automaticamente.
+*   **Segurança:** Adicionar Middleware de autenticação nas rotas `/admin`.
+
+### 🟡 Prioridade Média
+*   **Refinamento do Checkout:** Testes de fluxo completo (Happy Path e Edge Cases) para garantir robustez na criação do pedido.
+*   **Validação de Formulário:** Implementar Zod para feedback visual nos inputs.
+
+*(Nota: Cadastros complexos e tags foram removidos do escopo para manter o foco no MVP)*
+
+## 5. 🔌 Mapa de Rotas da API
+*   `POST /api/webhook` (Pagamentos) - 🚧 Em Desenvolvimento
+*   `POST /api/checkout` (Criação de Pedidos) - ✅ Estável
+*   `GET /api/products` (Listagem) - ✅ Estável (SSR)
+*   `POST /api/products` (Criação) - ✅ Estável
