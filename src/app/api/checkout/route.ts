@@ -1,28 +1,24 @@
 import { NextResponse } from "next/server";
-import { MercadoPagoConfig, Preference } from "mercadopago"; // CORREÇÃO 1: Importar Config
+import { MercadoPagoConfig, Preference } from "mercadopago"; 
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 
-// CORREÇÃO 2: Inicializar com MercadoPagoConfig (Isso resolve o erro de Type)
-const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
-const preference = new Preference(client);
-
 export async function POST(request: Request) {
   try {
     await connectToDatabase();
+    // Inicializa MP
+    const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
+    const preference = new Preference(client);
+
     const body = await request.json();
     const { cart, customer } = body;
 
-    // Validação de entrada
-    if (!cart || !Array.isArray(cart) || cart.length === 0) {
-      return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
-    }
-    if (!customer?.phone) {
-      return NextResponse.json({ error: "Telefone é obrigatório" }, { status: 400 });
-    }
+    // --- Validações ---
+    if (!cart || cart.length === 0) return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
+    if (!customer?.phone) return NextResponse.json({ error: "Telefone é obrigatório" }, { status: 400 });
 
-    // 1. OTIMIZAÇÃO: Busca Produtos no Banco
+    // 1. Processa os Itens (Preço do Banco = Segurança)
     const productIds = cart.map((item: any) => item._id || item.id);
     const dbProducts = await Product.find({ _id: { $in: productIds } });
     const productsMap = new Map(dbProducts.map((p) => [p._id.toString(), p]));
@@ -31,30 +27,21 @@ export async function POST(request: Request) {
     const itemsForDatabase: any[] = [];
     let totalCalculado = 0;
 
-    // 2. Processamento dos Itens
     for (const cartItem of cart) {
       const id = cartItem._id || cartItem.id;
-      const quantity = Number(cartItem.quantity);
       const realProduct = productsMap.get(id);
+      if (!realProduct) continue; 
 
-      if (!realProduct) {
-        return NextResponse.json({ error: `Produto indisponível: ${cartItem.name}` }, { status: 400 });
-      }
-
-      // Validação de Quantidade
-      if (!Number.isInteger(quantity) || quantity <= 0) {
-        return NextResponse.json({ error: `Qtd inválida: ${cartItem.name}` }, { status: 400 });
-      }
-
-      const realPrice = realProduct.price;
+      const quantity = Number(cartItem.quantity);
+      const realPrice = Number(realProduct.price);
       totalCalculado += realPrice * quantity;
 
       itemsForMercadoPago.push({
         id: realProduct._id.toString(),
         title: realProduct.name,
         quantity: quantity,
-        unit_price: Number(realPrice),
-        currency_id: "BRL", // Boa prática adicionar
+        unit_price: realPrice,
+        currency_id: "BRL",
       });
 
       itemsForDatabase.push({
@@ -66,51 +53,58 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. E-MAIL INVISÍVEL (Técnica do WhatsApp)
+    // 2. LÓGICA HÍBRIDA DE E-MAIL (Real ou Técnico)
     const cleanPhone = customer.phone.replace(/\D/g, "");
-    const technicalEmail = `${cleanPhone}@cliente.loopdonuts.com`;
+    
+    // Se o cliente mandou email válido, usa. Se não, gera o técnico.
+    const finalEmail = (customer.email && customer.email.includes("@"))
+      ? customer.email
+      : `cliente_${cleanPhone}@loopdonuts.com`;
 
-    // 4. Cria a Preferência no Mercado Pago
-    const result = await preference.create({
-      body: {
-        items: itemsForMercadoPago,
-        payer: {
-          email: technicalEmail,
-        },
-        payment_methods: {
-          excluded_payment_types: [{ id: "credit_card" }],
-          installments: 1,
-        },
-        notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook`,
-        metadata: {
-          customer_name: customer.name,
-          customer_phone: customer.phone,
-          db_order_id: "pending", // Placeholder, podemos atualizar depois se precisar
-        }
-      },
-    });
+    // 3. LÓGICA DE CPF (Se tiver)
+    const payerDoc = (customer.docNumber && customer.docNumber.length > 5)
+      ? { type: "CPF", number: customer.docNumber.replace(/\D/g, "") }
+      : undefined;
 
-    // 5. Salva o Pedido no Banco
+    // 4. Cria Pedido no Banco (Status Pending)
     const newOrder = await Order.create({
       customer: {
-        name: customer.name,
-        phone: customer.phone,
-        email: technicalEmail,
-        address: customer.address,
-        neighborhood: customer.neighborhood,
+        ...customer,
+        email: finalEmail, 
       },
       items: itemsForDatabase,
       total: totalCalculado,
       status: "pending",
-      mp_preference_id: result.id,
       createdAt: new Date(),
     });
 
-    return NextResponse.json({
-      url: result.init_point, // URL para checkout redirecionado (se usar)
-      id: result.id,          // ID da preferência para abrir o modal/checkout pro
-      orderId: newOrder._id,
+    // 5. Cria Preferência no Mercado Pago (LIBERADA PARA TODOS OS MEIOS)
+    const result = await preference.create({
+      body: {
+        items: itemsForMercadoPago,
+        payer: {
+          email: finalEmail,
+          identification: payerDoc, // Manda CPF se existir
+        },
+        // 👇 REMOVI O BLOQUEIO DE CARTÃO AQUI!
+        // Deixando vazio, o MP aceita Pix, Boleto, Crédito e Débito automaticamente.
+        back_urls: {
+            success: `${process.env.NEXT_PUBLIC_BASE_URL}/menu?status=success`,
+            failure: `${process.env.NEXT_PUBLIC_BASE_URL}/menu?status=failure`,
+            pending: `${process.env.NEXT_PUBLIC_BASE_URL}/menu?status=pending`,
+        },
+        auto_return: "approved",
+        external_reference: newOrder._id.toString(),
+        notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook`,
+        metadata: { db_order_id: newOrder._id.toString() }
+      },
     });
+
+    // 6. Atualiza o pedido com o ID da preferência (Importante!)
+    newOrder.mp_preference_id = result.id;
+    await newOrder.save();
+
+    return NextResponse.json({ url: result.init_point, id: result.id });
 
   } catch (error) {
     console.error("Erro no Checkout:", error);
