@@ -6,18 +6,30 @@ import Order from "@/models/Order";
 
 export async function POST(request: Request) {
   try {
+    // 0. SEGURANÇA: Valida Token antes de tudo
+    const accessToken = process.env.MP_ACCESS_TOKEN;
+    if (!accessToken) {
+      console.error("❌ ERRO CRÍTICO: MP_ACCESS_TOKEN não configurado no .env");
+      return NextResponse.json({ error: "Erro de configuração no servidor (Token ausente)" }, { status: 500 });
+    }
+
+    // 1. Inicializa Conexões
     await connectToDatabase();
-    const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
+    const client = new MercadoPagoConfig({ accessToken });
     const preference = new Preference(client);
 
+    // 2. Recebe e Valida Dados
     const body = await request.json();
     const { cart, customer } = body;
 
-    // --- Validações ---
     if (!cart || cart.length === 0) return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
     if (!customer?.phone) return NextResponse.json({ error: "Telefone é obrigatório" }, { status: 400 });
 
-    // 1. Processa os Itens
+    // 3. Detecta a URL correta (Localhost ou Vercel) automaticamente
+    // Isso evita o erro de "undefined" nas URLs de retorno
+    const origin = request.headers.get("origin") || "https://loop-donuts.vercel.app";
+
+    // 4. Processa Produtos (Segurança de Preço)
     const productIds = cart.map((item: any) => item._id || item.id);
     const dbProducts = await Product.find({ _id: { $in: productIds } });
     const productsMap = new Map(dbProducts.map((p) => [p._id.toString(), p]));
@@ -52,17 +64,19 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. E-MAIL E DOC (Lógica Híbrida)
+    // 5. E-MAIL E DOC (Lógica Híbrida)
     const cleanPhone = customer.phone.replace(/\D/g, "");
+    
+    // Tenta usar o e-mail real. Se não tiver, usa o técnico (Risco de perder cartão!)
     const finalEmail = (customer.email && customer.email.includes("@"))
-      ? customer.email
+      ? customer.email.trim()
       : `cliente_${cleanPhone}@loopdonuts.com`;
 
     const payerDoc = (customer.docNumber && customer.docNumber.length > 5)
       ? { type: "CPF", number: customer.docNumber.replace(/\D/g, "") }
       : undefined;
 
-    // 3. Cria Pedido no Banco
+    // 6. Cria Pedido no Banco
     const newOrder = await Order.create({
       customer: { ...customer, email: finalEmail },
       items: itemsForDatabase,
@@ -71,12 +85,7 @@ export async function POST(request: Request) {
       createdAt: new Date(),
     });
 
-    // 👇 DEFINA AQUI O SEU SITE REAL (Sem barra no final)
-    // Se estiver testando local, use http://localhost:3000
-    // Se for subir pra Vercel, use a URL oficial
-    const BASE_URL = "https://loop-donuts.vercel.app"; 
-
-    // 4. Cria Preferência (LIBERADA GERAL)
+    // 7. Cria Preferência no Mercado Pago
     const result = await preference.create({
       body: {
         items: itemsForMercadoPago,
@@ -84,30 +93,35 @@ export async function POST(request: Request) {
           email: finalEmail,
           identification: payerDoc,
         },
-        // 👇 REMOVI payment_methods: {} (Isso libera Crédito, Débito e TUDO)
-        
-        // URLs de retorno (Para onde o cliente vai depois de pagar)
+        // Back URLs dinâmicas baseadas na origem
         back_urls: {
-            success: `${BASE_URL}/menu?status=success`,
-            failure: `${BASE_URL}/menu?status=failure`,
-            pending: `${BASE_URL}/menu?status=pending`,
+            success: `${origin}/menu?status=success`,
+            failure: `${origin}/menu?status=failure`,
+            pending: `${origin}/menu?status=pending`,
         },
         auto_return: "approved",
         external_reference: newOrder._id.toString(),
-        notification_url: `${BASE_URL}/api/webhook`, // Webhook também precisa da URL certa
+        notification_url: `${origin}/api/webhook`, 
         metadata: { db_order_id: newOrder._id.toString() }
       },
     });
 
-    // 5. Salva ID e Retorna
+    // 8. Salva ID e Retorna
     newOrder.mp_preference_id = result.id;
     await newOrder.save();
 
     return NextResponse.json({ url: result.init_point, id: result.id });
 
-  } catch (error) {
-    console.error("❌ ERRO CRÍTICO NO CHECKOUT:", error);
-    // Retorna o erro detalhado para você ver no Network do navegador se precisar
-    return NextResponse.json({ error: "Erro ao processar pagamento", details: String(error) }, { status: 500 });
+  } catch (error: any) {
+    // 🔥 LOG DE ERRO DETALHADO (A Correção Principal)
+    console.error("❌ ERRO NO CHECKOUT (JSON):", JSON.stringify(error, null, 2));
+    
+    // Tenta pegar a mensagem real do erro
+    const errorMessage = error.cause?.description || error.message || "Erro desconhecido ao processar pagamento";
+    
+    return NextResponse.json({ 
+      error: "Erro ao criar preferência de pagamento", 
+      details: errorMessage 
+    }, { status: 500 });
   }
 }
