@@ -3,18 +3,19 @@
 import { useCart } from "@/context/CartContext";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
-import { Trash2, ArrowRight, Copy, CheckCircle, CreditCard, Banknote } from "lucide-react";
+import { Trash2, ArrowRight, Copy, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
 export default function CartPage() {
   const { cart, removeFromCart, total, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("pix"); // Mantido para compatibilidade visual, mas o backend decide
+  // paymentMethod mantido apenas para visual, o backend decide as opções agora
+  const [paymentMethod, setPaymentMethod] = useState("pix"); 
   const [pixCode, setPixCode] = useState("");
   const [qrCodeImage, setQrCodeImage] = useState("");
   const [orderSuccess, setOrderSuccess] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState(""); // Para redirecionamento (cartão)
+  const [checkoutUrl, setCheckoutUrl] = useState(""); 
 
   // Estado do formulário com novos campos
   const [formData, setFormData] = useState({
@@ -48,9 +49,9 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
-    // Validação básica
-    if (!formData.name || !formData.phone || !formData.address) {
-      alert("Por favor, preencha os dados de entrega obrigatórios! 🚚");
+    // 👇 CORREÇÃO CRÍTICA: Validação do Bairro (neighborhood)
+    if (!formData.name || !formData.phone || !formData.address || !formData.neighborhood) {
+      alert("Por favor, preencha TODOS os dados de entrega (incluindo o Bairro)! 🚚");
       return;
     }
 
@@ -164,8 +165,8 @@ export default function CartPage() {
                 <h2 className="font-black text-xl mb-4 uppercase">Dados de Entrega</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="col-span-1 md:col-span-2">
-                     <label className="text-xs font-bold text-gray-500 ml-1">Nome Completo *</label>
-                     <input name="name" value={formData.name} onChange={handleChange} placeholder="Ex: João Silva" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                      <label className="text-xs font-bold text-gray-500 ml-1">Nome Completo *</label>
+                      <input name="name" value={formData.name} onChange={handleChange} placeholder="Ex: João Silva" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
                   </div>
                   
                   <div>
