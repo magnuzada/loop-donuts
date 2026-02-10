@@ -7,7 +7,6 @@ import Order from "@/models/Order";
 export async function POST(request: Request) {
   try {
     await connectToDatabase();
-    // Inicializa MP
     const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
     const preference = new Preference(client);
 
@@ -18,7 +17,7 @@ export async function POST(request: Request) {
     if (!cart || cart.length === 0) return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
     if (!customer?.phone) return NextResponse.json({ error: "Telefone é obrigatório" }, { status: 400 });
 
-    // 1. Processa os Itens (Preço do Banco = Segurança)
+    // 1. Processa os Itens
     const productIds = cart.map((item: any) => item._id || item.id);
     const dbProducts = await Product.find({ _id: { $in: productIds } });
     const productsMap = new Map(dbProducts.map((p) => [p._id.toString(), p]));
@@ -53,61 +52,62 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. LÓGICA HÍBRIDA DE E-MAIL (Real ou Técnico)
+    // 2. E-MAIL E DOC (Lógica Híbrida)
     const cleanPhone = customer.phone.replace(/\D/g, "");
-    
-    // Se o cliente mandou email válido, usa. Se não, gera o técnico.
     const finalEmail = (customer.email && customer.email.includes("@"))
       ? customer.email
       : `cliente_${cleanPhone}@loopdonuts.com`;
 
-    // 3. LÓGICA DE CPF (Se tiver)
     const payerDoc = (customer.docNumber && customer.docNumber.length > 5)
       ? { type: "CPF", number: customer.docNumber.replace(/\D/g, "") }
       : undefined;
 
-    // 4. Cria Pedido no Banco (Status Pending)
+    // 3. Cria Pedido no Banco
     const newOrder = await Order.create({
-      customer: {
-        ...customer,
-        email: finalEmail, 
-      },
+      customer: { ...customer, email: finalEmail },
       items: itemsForDatabase,
       total: totalCalculado,
       status: "pending",
       createdAt: new Date(),
     });
 
-    // 5. Cria Preferência no Mercado Pago (LIBERADA PARA TODOS OS MEIOS)
+    // 👇 DEFINA AQUI O SEU SITE REAL (Sem barra no final)
+    // Se estiver testando local, use http://localhost:3000
+    // Se for subir pra Vercel, use a URL oficial
+    const BASE_URL = "https://loop-donuts.vercel.app"; 
+
+    // 4. Cria Preferência (LIBERADA GERAL)
     const result = await preference.create({
       body: {
         items: itemsForMercadoPago,
         payer: {
           email: finalEmail,
-          identification: payerDoc, // Manda CPF se existir
+          identification: payerDoc,
         },
-        // 👇 REMOVI O BLOQUEIO DE CARTÃO AQUI!
-        // Deixando vazio, o MP aceita Pix, Boleto, Crédito e Débito automaticamente.
+        // 👇 REMOVI payment_methods: {} (Isso libera Crédito, Débito e TUDO)
+        
+        // URLs de retorno (Para onde o cliente vai depois de pagar)
         back_urls: {
-            success: `${process.env.NEXT_PUBLIC_BASE_URL}/menu?status=success`,
-            failure: `${process.env.NEXT_PUBLIC_BASE_URL}/menu?status=failure`,
-            pending: `${process.env.NEXT_PUBLIC_BASE_URL}/menu?status=pending`,
+            success: `${BASE_URL}/menu?status=success`,
+            failure: `${BASE_URL}/menu?status=failure`,
+            pending: `${BASE_URL}/menu?status=pending`,
         },
         auto_return: "approved",
         external_reference: newOrder._id.toString(),
-        notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook`,
+        notification_url: `${BASE_URL}/api/webhook`, // Webhook também precisa da URL certa
         metadata: { db_order_id: newOrder._id.toString() }
       },
     });
 
-    // 6. Atualiza o pedido com o ID da preferência (Importante!)
+    // 5. Salva ID e Retorna
     newOrder.mp_preference_id = result.id;
     await newOrder.save();
 
     return NextResponse.json({ url: result.init_point, id: result.id });
 
   } catch (error) {
-    console.error("Erro no Checkout:", error);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    console.error("❌ ERRO CRÍTICO NO CHECKOUT:", error);
+    // Retorna o erro detalhado para você ver no Network do navegador se precisar
+    return NextResponse.json({ error: "Erro ao processar pagamento", details: String(error) }, { status: 500 });
   }
 }
