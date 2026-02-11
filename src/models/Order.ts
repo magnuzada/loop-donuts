@@ -2,24 +2,27 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 // Tipagem dos itens dentro do pedido
 interface OrderItem {
-  productId?: string; // ID do produto (opcional por enquanto)
+  productId?: string;
   name: string;
   quantity: number;
-  price: number; // Preço na hora da compra (histórico)
+  price: number;
 }
 
-// Tipagem do Pedido Completo
+// 1. ATUALIZAÇÃO AQUI: Adicionamos os novos status permitidos pelo TypeScript
 export interface IOrder extends Document {
   customer: {
     name: string;
     phone: string;
+    email?: string; // Adicionei email opcional (boa prática)
+    docNumber?: string; // Adicionei CPF opcional
     address: string;
     neighborhood: string;
   };
   items: OrderItem[];
   total: number;
-  status: 'pending' | 'paid' | 'failed'; // Status do pagamento
-  paymentId?: string; // ID do Pix no Mercado Pago
+  // Agora o TS aceita todos os passos da cozinha
+  status: 'pending' | 'paid' | 'failed' | 'preparing' | 'delivering' | 'completed' | 'canceled';
+  paymentId?: string;
   createdAt: Date;
 }
 
@@ -28,6 +31,8 @@ const OrderSchema = new Schema<IOrder>(
     customer: {
       name: { type: String, required: true },
       phone: { type: String, required: true },
+      email: { type: String }, // Novo
+      docNumber: { type: String }, // Novo
       address: { type: String, required: true },
       neighborhood: { type: String, required: true },
     },
@@ -39,12 +44,15 @@ const OrderSchema = new Schema<IOrder>(
       },
     ],
     total: { type: Number, required: true },
+    
+    // 2. ATUALIZAÇÃO AQUI: Ensinamos ao Banco que essas palavras são válidas
     status: { 
       type: String, 
-      enum: ['pending', 'paid', 'failed'], 
+      enum: ['pending', 'paid', 'failed', 'preparing', 'delivering', 'completed', 'canceled'], 
       default: 'pending' 
     },
-    paymentId: { type: String }, // Guardaremos o ID do MP aqui depois
+    
+    paymentId: { type: String },
   },
   { timestamps: true }
 );

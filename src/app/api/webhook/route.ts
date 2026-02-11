@@ -8,7 +8,7 @@ const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN!
 
 export async function POST(request: Request) {
   try {
-    // 1. Recebe o aviso (Pode ser de qualquer um, inclusive hackers)
+    // 1. Recebe o aviso
     const body = await request.json();
     const { action, data } = body;
 
@@ -24,20 +24,18 @@ export async function POST(request: Request) {
 
     console.log(`🔔 Webhook Recebido: Pagamento ${data.id}`);
 
-    // 2. SEGURANÇA TOTAL: "Confie, mas Verifique"
-    // Vamos perguntar diretamente ao Mercado Pago o status real desse ID.
-    // Hackers não conseguem falsificar essa resposta, pois usamos o Token Oficial.
+    // 2. SEGURANÇA TOTAL: Verifica status real no MP
     const payment = new Payment(client);
     
     let paymentInfo;
     try {
       paymentInfo = await payment.get({ id: data.id });
     } catch (error) {
-      console.error("❌ Pagamento não encontrado no MP (Pode ser fake):", data.id);
-      return NextResponse.json({ error: "Pagamento não verificado" }, { status: 200 }); // Retorna 200 pro MP parar de mandar
+      console.error("❌ Pagamento não encontrado no MP:", data.id);
+      return NextResponse.json({ error: "Pagamento não verificado" }, { status: 200 });
     }
 
-    // 3. Extrai o ID do nosso pedido (que enviamos no checkout)
+    // 3. Extrai o ID do pedido
     const orderId = paymentInfo.external_reference;
     const statusAtual = paymentInfo.status;
 
@@ -46,35 +44,27 @@ export async function POST(request: Request) {
     if (orderId && (statusAtual === "approved" || statusAtual === "authorized")) {
       await connectToDatabase();
 
-      // 4. IDEMPOTÊNCIA (Evita processar 2x)
+      // 4. IDEMPOTÊNCIA
       const existingOrder = await Order.findById(orderId);
       
       if (existingOrder && existingOrder.status === "paid") {
-        console.log("✅ Pedido já estava pago. Nenhuma ação necessária.");
+        console.log("✅ Pedido já estava pago.");
         return NextResponse.json({ ok: true });
       }
 
-      // 5. ATUALIZA O BANCO (Fica Verde!)
+      // 5. ATUALIZA O BANCO (Para "paid")
       await Order.findByIdAndUpdate(orderId, {
-        status: "paid", // Ou 'approved'
-        updatedAt: new Date(),
-        // Opcional: Salvar dados do pagamento para auditoria
-        payment_info: {
-          id: data.id,
-          method: paymentInfo.payment_method_id,
-          type: paymentInfo.payment_type_id
-        }
+        status: "paid",
+        updatedAt: new Date()
       });
 
       console.log("🎉 SUCESSO: Pedido atualizado para PAGO!");
     }
 
-    // Responde 200 OK rápido para o Mercado Pago não ficar reenviando
     return NextResponse.json({ ok: true });
 
   } catch (error) {
     console.error("❌ Erro no Webhook:", error);
-    // Retorna 200 para evitar loop infinito de erros do MP
     return NextResponse.json({ error: "Erro interno, mas recebido" }, { status: 200 });
   }
 }
