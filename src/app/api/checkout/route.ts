@@ -1,35 +1,37 @@
 import { NextResponse } from "next/server";
-import { MercadoPagoConfig, Preference } from "mercadopago"; 
+import { MercadoPagoConfig, Preference } from "mercadopago";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 
 export async function POST(request: Request) {
   try {
-    // 0. SEGURANÇA: Valida Token antes de tudo
+    // 0. SEGURANÇA: Valida Token
     const accessToken = process.env.MP_ACCESS_TOKEN;
     if (!accessToken) {
-      console.error("❌ ERRO CRÍTICO: MP_ACCESS_TOKEN não configurado no .env");
-      return NextResponse.json({ error: "Erro de configuração no servidor (Token ausente)" }, { status: 500 });
+      console.error("❌ ERRO CRÍTICO: MP_ACCESS_TOKEN ausente");
+      return NextResponse.json({ error: "Erro de configuração no servidor" }, { status: 500 });
     }
 
     // 1. Inicializa Conexões
     await connectToDatabase();
     const client = new MercadoPagoConfig({ accessToken });
-    const preference = new Preference(client);
-
-    // 2. Recebe e Valida Dados
+    
+    // 2. Recebe Dados
     const body = await request.json();
     const { cart, customer } = body;
 
     if (!cart || cart.length === 0) return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
-    if (!customer?.phone) return NextResponse.json({ error: "Telefone é obrigatório" }, { status: 400 });
+    if (!customer?.phone) return NextResponse.json({ error: "Telefone obrigatório" }, { status: 400 });
 
-    // 3. Detecta a URL correta (Localhost ou Vercel) automaticamente
-    // Isso evita o erro de "undefined" nas URLs de retorno
-    const origin = request.headers.get("origin") || "https://loop-donuts.vercel.app";
+    // 🚨 CORREÇÃO PRINCIPAL: Definição da URL
+    // Se estiver em produção (Vercel), usa o link real. Se for local, tenta usar o origin.
+    const origin = request.headers.get("origin") || "http://localhost:3000";
+    const BASE_URL = process.env.NODE_ENV === 'production' 
+      ? "https://loop-donuts.vercel.app" 
+      : origin;
 
-    // 4. Processa Produtos (Segurança de Preço)
+    // 3. Processa Produtos (Preço seguro do Banco de Dados)
     const productIds = cart.map((item: any) => item._id || item.id);
     const dbProducts = await Product.find({ _id: { $in: productIds } });
     const productsMap = new Map(dbProducts.map((p) => [p._id.toString(), p]));
@@ -41,42 +43,39 @@ export async function POST(request: Request) {
     for (const cartItem of cart) {
       const id = cartItem._id || cartItem.id;
       const realProduct = productsMap.get(id);
-      if (!realProduct) continue; 
+      
+      if (!realProduct) continue;
 
       const quantity = Number(cartItem.quantity);
       const realPrice = Number(realProduct.price);
       totalCalculado += realPrice * quantity;
 
+      // Item para o Mercado Pago
       itemsForMercadoPago.push({
         id: realProduct._id.toString(),
         title: realProduct.name,
         quantity: quantity,
         unit_price: realPrice,
         currency_id: "BRL",
+        picture_url: realProduct.image || ""
       });
 
+      // Item para o seu Banco de Dados (MongoDB)
       itemsForDatabase.push({
-        product: realProduct._id,
         name: realProduct.name,
         quantity: quantity,
         price: realPrice,
-        image: realProduct.image
+        // productId: realProduct._id // Opcional, se seu Schema aceitar
       });
     }
 
-    // 5. E-MAIL E DOC (Lógica Híbrida)
+    // 4. Tratamento de E-mail (Obrigatório pro MP)
     const cleanPhone = customer.phone.replace(/\D/g, "");
-    
-    // Tenta usar o e-mail real. Se não tiver, usa o técnico (Risco de perder cartão!)
     const finalEmail = (customer.email && customer.email.includes("@"))
       ? customer.email.trim()
-      : `cliente_${cleanPhone}@loopdonuts.com`;
+      : `cliente_${cleanPhone}@loopdonuts.com`; // E-mail técnico se o user não der
 
-    const payerDoc = (customer.docNumber && customer.docNumber.length > 5)
-      ? { type: "CPF", number: customer.docNumber.replace(/\D/g, "") }
-      : undefined;
-
-    // 6. Cria Pedido no Banco
+    // 5. Cria o Pedido no Mongo (Status: Pendente)
     const newOrder = await Order.create({
       customer: { ...customer, email: finalEmail },
       items: itemsForDatabase,
@@ -85,43 +84,44 @@ export async function POST(request: Request) {
       createdAt: new Date(),
     });
 
-    // 7. Cria Preferência no Mercado Pago
+    // 6. Cria a Preferência no Mercado Pago
+    const preference = new Preference(client);
     const result = await preference.create({
       body: {
         items: itemsForMercadoPago,
         payer: {
           email: finalEmail,
-          identification: payerDoc,
+          // Se tiver CPF, envia. Se não, não envia o objeto identification.
+          ...(customer.docNumber && {
+            identification: { type: "CPF", number: customer.docNumber.replace(/\D/g, "") }
+          })
         },
-        // Back URLs dinâmicas baseadas na origem
+        // 👇 AQUI ESTAVA O ERRO. Agora aponta para URLs reais.
         back_urls: {
-            success: `${origin}/menu?status=success`,
-            failure: `${origin}/menu?status=failure`,
-            pending: `${origin}/menu?status=pending`,
+          success: `${BASE_URL}/success`, // Página de Sucesso
+          failure: `${BASE_URL}/`,        // Volta pra Home se falhar
+          pending: `${BASE_URL}/`,        // Volta pra Home se ficar pendente
         },
         auto_return: "approved",
-        external_reference: newOrder._id.toString(),
-        notification_url: `${origin}/api/webhook`, 
-        metadata: { db_order_id: newOrder._id.toString() }
+        external_reference: newOrder._id.toString(), // Link entre MP e Mongo
+        notification_url: `${BASE_URL}/api/webhook`, // O Robô que avisa que pagou
+        metadata: { 
+          db_order_id: newOrder._id.toString() 
+        }
       },
     });
 
-    // 8. Salva ID e Retorna
-    newOrder.mp_preference_id = result.id;
+    // 7. Salva o ID do MP no Pedido
+    newOrder.paymentId = result.id; // Ou mp_preference_id dependendo do seu Schema
     await newOrder.save();
 
     return NextResponse.json({ url: result.init_point, id: result.id });
 
   } catch (error: any) {
-    // 🔥 LOG DE ERRO DETALHADO (A Correção Principal)
-    console.error("❌ ERRO NO CHECKOUT (JSON):", JSON.stringify(error, null, 2));
-    
-    // Tenta pegar a mensagem real do erro
-    const errorMessage = error.cause?.description || error.message || "Erro desconhecido ao processar pagamento";
-    
+    console.error("❌ ERRO CHECKOUT:", error);
     return NextResponse.json({ 
-      error: "Erro ao criar preferência de pagamento", 
-      details: errorMessage 
+      error: "Erro ao processar", 
+      details: error.message 
     }, { status: 500 });
   }
 }
