@@ -2,54 +2,17 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Order from "@/models/Order";
 
-// Validação extra para garantir que só entra coisa certa
-const ALLOWED_STATUSES = [
-  'pending', 
-  'paid', 
-  'failed', 
-  'preparing',  
-  'delivering', 
-  'completed',  
-  'canceled'
-];
-
-interface RouteParams {
-  params: { id: string };
-}
-
-// PATCH: Atualiza o status de um pedido específico
-export async function PATCH(request: Request, { params }: RouteParams) {
+export async function GET() {
   try {
     await connectToDatabase();
-    const { id } = params;
+    
+    // O segredo está aqui: find() vazio busca TUDO.
+    // .sort({ createdAt: -1 }) ordena do mais novo para o mais velho.
+    const orders = await Order.find().sort({ createdAt: -1 });
 
-    // Pega o novo status que o Frontend mandou
-    const body = await request.json();
-    const { status } = body;
-
-    // Verifica se é um status válido
-    if (!status || !ALLOWED_STATUSES.includes(status)) {
-      return NextResponse.json(
-        { error: "Status inválido", allowed: ALLOWED_STATUSES },
-        { status: 400 }
-      );
-    }
-
-    // Atualiza no Banco
-    const updatedOrder = await Order.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true } // Retorna o pedido atualizado para atualizar a tela
-    );
-
-    if (!updatedOrder) {
-      return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
-    }
-
-    return NextResponse.json(updatedOrder);
-
+    return NextResponse.json(orders);
   } catch (error) {
-    console.error("Erro ao atualizar pedido:", error);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    console.error("Erro ao buscar pedidos:", error);
+    return NextResponse.json({ error: "Erro ao carregar pedidos" }, { status: 500 });
   }
 }
