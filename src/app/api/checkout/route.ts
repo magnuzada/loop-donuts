@@ -24,14 +24,17 @@ export async function POST(request: Request) {
     if (!cart || cart.length === 0) return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
     if (!customer?.phone) return NextResponse.json({ error: "Telefone obrigatório" }, { status: 400 });
 
-    // 🚨 CORREÇÃO PRINCIPAL: Definição da URL
-    // Se estiver em produção (Vercel), usa o link real. Se for local, tenta usar o origin.
-    const origin = request.headers.get("origin") || "http://localhost:3000";
-    const BASE_URL = process.env.NODE_ENV === 'production' 
-      ? "https://loop-donuts.vercel.app" 
-      : origin;
+    // 🚨 DEFINIÇÃO DE URL BLINDADA
+    const origin = request.headers.get("origin");
+    let BASE_URL = origin || "http://localhost:3000"; 
 
-    // 3. Processa Produtos (Preço seguro do Banco de Dados)
+    if (process.env.NODE_ENV === 'production') {
+        BASE_URL = "https://loop-donuts.vercel.app";
+    }
+    
+    console.log("🔗 URL Base:", BASE_URL);
+
+    // 3. Processa Produtos
     const productIds = cart.map((item: any) => item._id || item.id);
     const dbProducts = await Product.find({ _id: { $in: productIds } });
     const productsMap = new Map(dbProducts.map((p) => [p._id.toString(), p]));
@@ -50,7 +53,6 @@ export async function POST(request: Request) {
       const realPrice = Number(realProduct.price);
       totalCalculado += realPrice * quantity;
 
-      // Item para o Mercado Pago
       itemsForMercadoPago.push({
         id: realProduct._id.toString(),
         title: realProduct.name,
@@ -60,22 +62,22 @@ export async function POST(request: Request) {
         picture_url: realProduct.image || ""
       });
 
-      // Item para o seu Banco de Dados (MongoDB)
       itemsForDatabase.push({
+        product: realProduct._id,
         name: realProduct.name,
         quantity: quantity,
         price: realPrice,
-        // productId: realProduct._id // Opcional, se seu Schema aceitar
+        image: realProduct.image
       });
     }
 
-    // 4. Tratamento de E-mail (Obrigatório pro MP)
+    // 4. Tratamento de E-mail
     const cleanPhone = customer.phone.replace(/\D/g, "");
     const finalEmail = (customer.email && customer.email.includes("@"))
       ? customer.email.trim()
-      : `cliente_${cleanPhone}@loopdonuts.com`; // E-mail técnico se o user não der
+      : `cliente_${cleanPhone}@loopdonuts.com`;
 
-    // 5. Cria o Pedido no Mongo (Status: Pendente)
+    // 5. Cria Pedido no Mongo
     const newOrder = await Order.create({
       customer: { ...customer, email: finalEmail },
       items: itemsForDatabase,
@@ -86,33 +88,37 @@ export async function POST(request: Request) {
 
     // 6. Cria a Preferência no Mercado Pago
     const preference = new Preference(client);
+
+    // 🧠 ESTRATÉGIA INTELIGENTE DE RETORNO
+    // Se for localhost, DESATIVA o retorno automático para não dar erro 400.
+    // Se for produção (HTTPS), ATIVA para dar melhor experiência.
+    const autoReturnStrategy = BASE_URL.includes("localhost") ? undefined : "approved";
+
     const result = await preference.create({
       body: {
         items: itemsForMercadoPago,
         payer: {
           email: finalEmail,
-          // Se tiver CPF, envia. Se não, não envia o objeto identification.
           ...(customer.docNumber && {
             identification: { type: "CPF", number: customer.docNumber.replace(/\D/g, "") }
           })
         },
-        // 👇 AQUI ESTAVA O ERRO. Agora aponta para URLs reais.
         back_urls: {
-          success: `${BASE_URL}/success`, // Página de Sucesso
-          failure: `${BASE_URL}/`,        // Volta pra Home se falhar
-          pending: `${BASE_URL}/`,        // Volta pra Home se ficar pendente
+          success: `${BASE_URL}/success`,
+          failure: `${BASE_URL}/`,
+          pending: `${BASE_URL}/`,
         },
-        auto_return: "approved",
-        external_reference: newOrder._id.toString(), // Link entre MP e Mongo
-        notification_url: `${BASE_URL}/api/webhook`, // O Robô que avisa que pagou
+        auto_return: autoReturnStrategy, // <--- A MÁGICA AQUI
+        external_reference: newOrder._id.toString(),
+        notification_url: `${BASE_URL}/api/webhook`,
         metadata: { 
           db_order_id: newOrder._id.toString() 
         }
       },
     });
 
-    // 7. Salva o ID do MP no Pedido
-    newOrder.paymentId = result.id; // Ou mp_preference_id dependendo do seu Schema
+    // 7. Salva ID e Retorna
+    newOrder.paymentId = result.id;
     await newOrder.save();
 
     return NextResponse.json({ url: result.init_point, id: result.id });
@@ -121,7 +127,8 @@ export async function POST(request: Request) {
     console.error("❌ ERRO CHECKOUT:", error);
     return NextResponse.json({ 
       error: "Erro ao processar", 
-      details: error.message 
+      details: error.message,
+      cause: error.cause 
     }, { status: 500 });
   }
 }
