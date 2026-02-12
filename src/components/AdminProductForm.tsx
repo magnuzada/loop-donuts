@@ -79,22 +79,22 @@ export function AdminProductForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700">Nome do Produto</label>
-            <input name="name" onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="Ex: Donut Homer Simpson" />
+            <input name="name" value={formData.name} onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="Ex: Donut Homer Simpson" />
           </div>
           
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700">Descrição Detalhada</label>
-            <textarea name="description" onChange={handleChange} rows={3} className="w-full p-2 border rounded-md" placeholder="Ingredientes, sabor, detalhes..." />
+            <textarea name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full p-2 border rounded-md" placeholder="Ingredientes, sabor, detalhes..." />
           </div>
 
           <div className="md:col-span-1">
             <label className="block text-sm font-medium text-gray-700">SKU (Código Interno)</label>
-            <input name="sku" onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Ex: DON-001" />
+            <input name="sku" value={formData.sku} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Ex: DON-001" />
           </div>
 
           <div className="md:col-span-1">
             <label className="block text-sm font-medium text-gray-700">Status</label>
-            <select name="status" onChange={handleChange} className="w-full p-2 border rounded-md bg-white">
+            <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border rounded-md bg-white">
               <option value="active">🟢 Ativo (Visível)</option>
               <option value="draft">🟡 Rascunho (Escondido)</option>
               <option value="inactive">🔴 Inativo (Arquivado)</option>
@@ -107,9 +107,17 @@ export function AdminProductForm() {
       <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
         <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">📸 Imagem</h3>
         <label className="block text-sm font-medium text-gray-700">URL da Imagem (Capa)</label>
-        <input name="image" onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="https://..." />
+        <input name="image" value={formData.image} onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="https://..." />
         {formData.image && (
-          <img src={formData.image} alt="Preview" className="mt-4 h-32 w-32 object-cover rounded-md border" />
+          <div className="mt-4">
+            <span className="block text-xs text-gray-500 mb-1">Prévia:</span>
+            <img 
+              src={formData.image} 
+              alt="Preview" 
+              className="h-32 w-32 object-cover rounded-md border border-gray-300 shadow-sm" 
+              onError={(e) => (e.currentTarget.style.display = 'none')} // Esconde se o link for inválido
+            />
+          </div>
         )}
       </div>
 
@@ -119,15 +127,15 @@ export function AdminProductForm() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Preço Base (R$)</label>
-            <input name="price" type="number" step="0.01" onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="0.00" />
+            <input name="price" value={formData.price} type="number" step="0.01" onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="0.00" />
           </div>
           
           <div className="md:col-span-2 bg-yellow-50 p-4 rounded-md border border-yellow-200">
              <h4 className="text-sm font-bold text-yellow-800 mb-2">🏷️ Área de Promoção (Opcional)</h4>
              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <input name="discountPrice" type="number" step="0.01" onChange={handleChange} className="w-full p-2 border rounded-md text-sm" placeholder="Preço Promo" />
-                <input name="discountStart" type="date" onChange={handleChange} className="w-full p-2 border rounded-md text-sm" />
-                <input name="discountEnd" type="date" onChange={handleChange} className="w-full p-2 border rounded-md text-sm" />
+                <input name="discountPrice" value={formData.discountPrice} type="number" step="0.01" onChange={handleChange} className="w-full p-2 border rounded-md text-sm" placeholder="Preço Promo" />
+                <input name="discountStart" value={formData.discountStart} type="date" onChange={handleChange} className="w-full p-2 border rounded-md text-sm" />
+                <input name="discountEnd" value={formData.discountEnd} type="date" onChange={handleChange} className="w-full p-2 border rounded-md text-sm" />
              </div>
           </div>
         </div>
@@ -139,19 +147,19 @@ export function AdminProductForm() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">1. Categoria</label>
-            <input name="category" onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="Ex: Bebidas" />
+            <input name="category" value={formData.category} onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="Ex: Bebidas" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">2. Subcategoria</label>
-            <input name="subcategory" onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Ex: Café" />
+            <input name="subcategory" value={formData.subcategory} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Ex: Café" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">3. Sub-subcategoria</label>
-            <input name="subSubCategory" onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Ex: Expresso" />
+            <input name="subSubCategory" value={formData.subSubCategory} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Ex: Expresso" />
           </div>
           <div className="md:col-span-3">
              <label className="block text-sm font-medium text-gray-700">Tags Flexíveis (Separe por vírgula)</label>
-             <input name="tags" onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Ex: Sem açúcar, Vegano, Gelado" />
+             <input name="tags" value={formData.tags} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Ex: Sem açúcar, Vegano, Gelado" />
           </div>
         </div>
       </div>
@@ -162,11 +170,11 @@ export function AdminProductForm() {
         <div className="grid grid-cols-2 gap-4">
            <div>
             <label className="block text-sm font-medium text-gray-700">Qtd Atual</label>
-            <input name="stock" type="number" onChange={handleChange} required className="w-full p-2 border rounded-md" />
+            <input name="stock" value={formData.stock} type="number" onChange={handleChange} required className="w-full p-2 border rounded-md" />
            </div>
            <div>
             <label className="block text-sm font-medium text-gray-700">Qtd Mínima (Alerta)</label>
-            <input name="minStock" type="number" onChange={handleChange} className="w-full p-2 border rounded-md" />
+            <input name="minStock" value={formData.minStock} type="number" onChange={handleChange} className="w-full p-2 border rounded-md" />
            </div>
         </div>
       </div>
@@ -176,18 +184,18 @@ export function AdminProductForm() {
         <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">⭐ Visibilidade</h3>
         <div className="flex flex-col gap-3">
           <label className="flex items-center gap-3 cursor-pointer">
-            <input name="isFeatured" type="checkbox" onChange={handleChange} className="w-5 h-5 accent-brand-500" />
+            <input name="isFeatured" checked={formData.isFeatured} type="checkbox" onChange={handleChange} className="w-5 h-5 accent-brand-500" />
             <span className="text-gray-700 font-medium">Exibir no Carrossel Principal?</span>
           </label>
           
           <label className="flex items-center gap-3 cursor-pointer">
-            <input name="isPromo" type="checkbox" onChange={handleChange} className="w-5 h-5 accent-brand-500" />
+            <input name="isPromo" checked={formData.isPromo} type="checkbox" onChange={handleChange} className="w-5 h-5 accent-brand-500" />
             <span className="text-gray-700 font-medium">Exibir na Seção de Promoções?</span>
           </label>
 
           <label className="flex items-center gap-3 cursor-pointer">
             {/* ✅ CORRIGIDO AQUI TAMBÉM (name="isNewArrival") */}
-            <input name="isNewArrival" type="checkbox" onChange={handleChange} className="w-5 h-5 accent-brand-500" />
+            <input name="isNewArrival" checked={formData.isNewArrival} type="checkbox" onChange={handleChange} className="w-5 h-5 accent-brand-500" />
             <span className="text-gray-700 font-medium">Marcar com etiqueta "NOVIDADE"?</span>
           </label>
         </div>
