@@ -2,7 +2,7 @@
 
 import { useCart } from "@/context/CartContext";
 import { NavBar } from "@/components/NavBar";
-import { Footer } from "@/components/Footer";
+import { Footer } from "@/components/Footer"; // Tente remover as chaves se for export default
 import { Trash2, ArrowRight, Copy, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";

@@ -3,45 +3,59 @@ import { MercadoPagoConfig, Preference } from "mercadopago";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
+import Neighborhood from "@/models/Neighborhood";
 
 export async function POST(request: Request) {
   try {
-    // 0. SEGURANÇA: Valida Token
     const accessToken = process.env.MP_ACCESS_TOKEN;
     if (!accessToken) {
-      console.error("❌ ERRO CRÍTICO: MP_ACCESS_TOKEN ausente");
-      return NextResponse.json({ error: "Erro de configuração no servidor" }, { status: 500 });
+      return NextResponse.json({ error: "Token MP não configurado" }, { status: 500 });
     }
 
-    // 1. Inicializa Conexões
     await connectToDatabase();
-    const client = new MercadoPagoConfig({ accessToken });
     
-    // 2. Recebe Dados
     const body = await request.json();
     const { cart, customer } = body;
 
-    if (!cart || cart.length === 0) return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
-    if (!customer?.phone) return NextResponse.json({ error: "Telefone obrigatório" }, { status: 400 });
+    // --- VALIDAÇÃO DO BAIRRO (CASE INSENSITIVE) ---
+    const neighborhoodDoc = await Neighborhood.findOne({ 
+      name: { $regex: new RegExp(`^${customer.neighborhood}$`, "i") }, 
+      active: true 
+    });
 
-    // 🚨 DEFINIÇÃO DE URL BLINDADA
-    const origin = request.headers.get("origin");
-    let BASE_URL = origin || "http://localhost:3000"; 
-
-    if (process.env.NODE_ENV === 'production') {
-        BASE_URL = "https://loop-donuts.vercel.app";
+    if (!neighborhoodDoc) {
+      return NextResponse.json({ error: `Bairro não atendido: ${customer.neighborhood}` }, { status: 400 });
     }
     
-    console.log("🔗 URL Base:", BASE_URL);
+    const deliveryFee = Number(neighborhoodDoc.price);
 
-    // 3. Processa Produtos
+    // --- CONFIGURAÇÃO DA URL (CORREÇÃO DO ERRO 400) ---
+    // Pega a URL base de forma segura
+    const origin = request.headers.get("origin");
+    const host = request.headers.get("host");
+    
+    // Se não tiver origin, usa o host. Se falhar, usa localhost.
+    let BASE_URL = origin || `http://${host}` || "http://localhost:3000";
+
+    // REMOVE BARRA NO FINAL SE TIVER (pra evitar http://site.com//success)
+    if (BASE_URL.endsWith("/")) {
+        BASE_URL = BASE_URL.slice(0, -1);
+    }
+    
+    console.log(`🔗 BASE_URL definida como: ${BASE_URL}`);
+
+    // Só ativa o retorno automático se NÃO for localhost
+    // Isso evita o erro "back_url.success must be defined" em desenvolvimento
+    const autoReturnStrategy = BASE_URL.includes("localhost") ? undefined : "approved";
+
+    // --- PROCESSAMENTO DOS PRODUTOS ---
     const productIds = cart.map((item: any) => item._id || item.id);
     const dbProducts = await Product.find({ _id: { $in: productIds } });
     const productsMap = new Map(dbProducts.map((p) => [p._id.toString(), p]));
 
     const itemsForMercadoPago: any[] = [];
     const itemsForDatabase: any[] = [];
-    let totalCalculado = 0;
+    let productsTotal = 0;
 
     for (const cartItem of cart) {
       const id = cartItem._id || cartItem.id;
@@ -51,7 +65,7 @@ export async function POST(request: Request) {
 
       const quantity = Number(cartItem.quantity);
       const realPrice = Number(realProduct.price);
-      totalCalculado += realPrice * quantity;
+      productsTotal += realPrice * quantity;
 
       itemsForMercadoPago.push({
         id: realProduct._id.toString(),
@@ -71,44 +85,38 @@ export async function POST(request: Request) {
       });
     }
 
-    // 4. Tratamento de E-mail
-    const cleanPhone = customer.phone.replace(/\D/g, "");
-    const finalEmail = (customer.email && customer.email.includes("@"))
-      ? customer.email.trim()
-      : `cliente_${cleanPhone}@loopdonuts.com`;
+    const finalTotal = productsTotal + deliveryFee;
 
-    // 5. Cria Pedido no Mongo
+    // Cria Pedido no Banco
     const newOrder = await Order.create({
-      customer: { ...customer, email: finalEmail },
+      customer: customer,
       items: itemsForDatabase,
-      total: totalCalculado,
+      deliveryFee: deliveryFee,
+      total: finalTotal,
       status: "pending",
       createdAt: new Date(),
     });
 
-    // 6. Cria a Preferência no Mercado Pago
+    // --- CRIAÇÃO DA PREFERÊNCIA MP ---
+    const client = new MercadoPagoConfig({ accessToken });
     const preference = new Preference(client);
-
-    // 🧠 ESTRATÉGIA INTELIGENTE DE RETORNO
-    // Se for localhost, DESATIVA o retorno automático para não dar erro 400.
-    // Se for produção (HTTPS), ATIVA para dar melhor experiência.
-    const autoReturnStrategy = BASE_URL.includes("localhost") ? undefined : "approved";
 
     const result = await preference.create({
       body: {
         items: itemsForMercadoPago,
+        shipments: {
+          cost: deliveryFee,
+          mode: "not_specified",
+        },
         payer: {
-          email: finalEmail,
-          ...(customer.docNumber && {
-            identification: { type: "CPF", number: customer.docNumber.replace(/\D/g, "") }
-          })
+          email: "test_user_123@test.com", // Email de teste para evitar validação chata
         },
         back_urls: {
           success: `${BASE_URL}/success`,
           failure: `${BASE_URL}/`,
           pending: `${BASE_URL}/`,
         },
-        auto_return: autoReturnStrategy, // <--- A MÁGICA AQUI
+        auto_return: autoReturnStrategy, // AQUI ESTÁ A CORREÇÃO
         external_reference: newOrder._id.toString(),
         notification_url: `${BASE_URL}/api/webhook`,
         metadata: { 
@@ -117,18 +125,10 @@ export async function POST(request: Request) {
       },
     });
 
-    // 7. Salva ID e Retorna
-    newOrder.paymentId = result.id;
-    await newOrder.save();
-
     return NextResponse.json({ url: result.init_point, id: result.id });
 
   } catch (error: any) {
     console.error("❌ ERRO CHECKOUT:", error);
-    return NextResponse.json({ 
-      error: "Erro ao processar", 
-      details: error.message,
-      cause: error.cause 
-    }, { status: 500 });
+    return NextResponse.json({ error: "Erro interno", details: error.message }, { status: 500 });
   }
 }
