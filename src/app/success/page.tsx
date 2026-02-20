@@ -46,10 +46,10 @@ function SuccessContent() {
       {/* Ações */}
       <div className="flex flex-col gap-4">
         <Link
-          href="/menu"
-          className="group relative w-full inline-flex items-center justify-center gap-3 bg-secondary hover:bg-yellow-400 text-black font-display text-xl px-8 py-4 rounded-pill border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+          href="/rastreio"
+          className="group relative w-full inline-flex items-center justify-center gap-3 bg-brand hover:bg-pink-500 text-white font-display text-xl px-8 py-4 rounded-pill border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
         >
-          VOLTAR AO CARDÁPIO
+          ACOMPANHAR PEDIDO
           <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
         </Link>
 

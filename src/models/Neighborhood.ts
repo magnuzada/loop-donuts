@@ -1,28 +1,9 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import mongoose from "mongoose";
 
-const NeighborhoodSchema = new Schema(
-  {
-    name: {
-      type: String,
-      required: [true, "O nome do bairro é obrigatório"],
-      unique: true, // Não pode ter dois bairros com mesmo nome
-    },
-    price: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    active: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  {
-    timestamps: true, // Cria createdAt e updatedAt automaticamente
-  }
-);
+const NeighborhoodSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  active: { type: Boolean, default: true },
+}, { timestamps: true });
 
-// Evita re-compilar o modelo se já existir (padrão Next.js)
-const Neighborhood = models.Neighborhood || model("Neighborhood", NeighborhoodSchema);
-
-export default Neighborhood;
+export default mongoose.models.Neighborhood || mongoose.model("Neighborhood", NeighborhoodSchema);

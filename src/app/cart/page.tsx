@@ -2,41 +2,80 @@
 
 import { useCart } from "@/context/CartContext";
 import { NavBar } from "@/components/NavBar";
-import { Footer } from "@/components/Footer"; // Tente remover as chaves se for export default
-import { Trash2, ArrowRight, Copy, CheckCircle } from "lucide-react";
+import { Footer } from "@/components/Footer";
+import { Trash2, ArrowRight, Copy, CheckCircle, Truck } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+
+// Tipo para os bairros
+interface Neighborhood {
+  _id: string;
+  name: string;
+  price: number;
+  active: boolean;
+}
 
 export default function CartPage() {
   const { cart, removeFromCart, total, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
-  // paymentMethod mantido apenas para visual, o backend decide as opções agora
-  const [paymentMethod, setPaymentMethod] = useState("pix"); 
   const [pixCode, setPixCode] = useState("");
   const [qrCodeImage, setQrCodeImage] = useState("");
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState(""); 
 
-  // Estado do formulário com novos campos
+  // Novos estados para a Logística
+  const [bairros, setBairros] = useState<Neighborhood[]>([]);
+  const [taxaEntrega, setTaxaEntrega] = useState(0);
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    email: "",      // Novo
-    docNumber: "",  // Novo (CPF)
+    email: "", 
+    docNumber: "", 
     address: "",
-    neighborhood: "",
+    neighborhood: "", 
   });
 
-  // 1. CARREGAR DADOS SALVOS (Memória do Cliente)
+  // 1. CARREGAR BAIRROS DO BANCO DE DADOS
+  useEffect(() => {
+    const fetchBairros = async () => {
+      try {
+        const res = await fetch("/api/admin/neighborhoods");
+        if (res.ok) {
+          const data = await res.json();
+          // Filtra apenas os ativos para o cliente escolher
+          setBairros(data.filter((b: Neighborhood) => b.active));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar bairros", error);
+      }
+    };
+    fetchBairros();
+  }, []);
+
+  // 2. CARREGAR DADOS SALVOS (Memória do Cliente)
   useEffect(() => {
     const savedData = localStorage.getItem("loop_customer_data");
     if (savedData) {
-      setFormData(JSON.parse(savedData));
+      const parsedData = JSON.parse(savedData);
+      setFormData(parsedData);
     }
   }, []);
 
-  // 2. SALVAR ENQUANTO DIGITA (Auto-Save)
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 3. ATUALIZAR TAXA DE ENTREGA QUANDO O BAIRRO MUDAR
+  useEffect(() => {
+    if (formData.neighborhood && bairros.length > 0) {
+      const bairroEscolhido = bairros.find(b => b.name === formData.neighborhood);
+      if (bairroEscolhido) {
+        setTaxaEntrega(bairroEscolhido.price);
+      } else {
+        setTaxaEntrega(0); // Caso o bairro salvo não exista mais
+      }
+    }
+  }, [formData.neighborhood, bairros]);
+
+  // 4. SALVAR ENQUANTO DIGITA (Auto-Save)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     const newData = { ...formData, [name]: value };
     setFormData(newData);
@@ -49,7 +88,6 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
-    // 👇 CORREÇÃO CRÍTICA: Validação do Bairro (neighborhood)
     if (!formData.name || !formData.phone || !formData.address || !formData.neighborhood) {
       alert("Por favor, preencha TODOS os dados de entrega (incluindo o Bairro)! 🚚");
       return;
@@ -57,25 +95,28 @@ export default function CartPage() {
 
     setLoading(true);
 
+    // O Total Final agora soma os itens do carrinho + taxa de entrega
+    const totalComEntrega = total + taxaEntrega;
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cart,
-          customer: formData // Envia todos os dados, incluindo email e cpf se tiver
+          customer: formData,
+          deliveryFee: taxaEntrega, // Envia a taxa para o backend salvar no pedido
+          totalAmount: totalComEntrega // Envia o total final
         }),
       });
 
       const data = await res.json();
 
       if (data.url) {
-        // Fluxo de redirecionamento (Cartão/Checkout Pro)
         setCheckoutUrl(data.url);
-        window.location.href = data.url; // Redireciona para o Mercado Pago
+        window.location.href = data.url; 
         clearCart();
       } else if (data.qr_code_base64) {
-        // Fluxo Pix Direto (Legado/Transparente)
         setPixCode(data.qr_code);
         setQrCodeImage(data.qr_code_base64);
         setOrderSuccess(true);
@@ -92,7 +133,6 @@ export default function CartPage() {
     }
   };
 
-  // Tela de Sucesso (Apenas para Pix Direto - Checkout Pro redireciona)
   if (orderSuccess) {
     return (
       <main className="min-h-screen bg-orange-50 flex flex-col">
@@ -135,7 +175,6 @@ export default function CartPage() {
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
             
-            {/* ESQUERDA - DADOS E ITENS */}
             <div className="flex-1 space-y-6">
               <div className="bg-white rounded-3xl p-6 border-2 border-black shadow-card">
                 <h2 className="font-black text-xl mb-4 uppercase">Seus Donuts</h2>
@@ -160,7 +199,6 @@ export default function CartPage() {
                 </ul>
               </div>
 
-              {/* FORMULÁRIO DE ENTREGA */}
               <div className="bg-white rounded-3xl p-6 border-2 border-black shadow-card">
                 <h2 className="font-black text-xl mb-4 uppercase">Dados de Entrega</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -174,15 +212,9 @@ export default function CartPage() {
                     <input name="phone" value={formData.phone} onChange={handleChange} placeholder="(00) 00000-0000" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
                   </div>
 
-                   {/* NOVOS CAMPOS OPCIONAIS (Mas salvos) */}
                    <div>
                     <label className="text-xs font-bold text-gray-500 ml-1">CPF (Opcional)</label>
                     <input name="docNumber" value={formData.docNumber} onChange={handleChange} placeholder="000.000.000-00" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
-                  </div>
-
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="text-xs font-bold text-gray-500 ml-1">E-mail (Opcional - Para NF)</label>
-                    <input name="email" value={formData.email} onChange={handleChange} placeholder="seu@email.com" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
@@ -190,39 +222,67 @@ export default function CartPage() {
                     <input name="address" value={formData.address} onChange={handleChange} placeholder="Rua, Número, Complemento" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
                   </div>
                   
+                  {/* 👇 MÁGICA DA LOGÍSTICA AQUI: Bairro virou Select */}
                   <div className="col-span-1 md:col-span-2">
-                    <label className="text-xs font-bold text-gray-500 ml-1">Bairro *</label>
-                    <input name="neighborhood" value={formData.neighborhood} onChange={handleChange} placeholder="Ex: Centro" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                    <label className="text-xs font-bold text-gray-500 ml-1">Bairro de Entrega *</label>
+                    {bairros.length === 0 ? (
+                       <div className="w-full p-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-400 text-sm">
+                         Carregando áreas de entrega...
+                       </div>
+                    ) : (
+                      <select 
+                        name="neighborhood" 
+                        value={formData.neighborhood} 
+                        onChange={handleChange} 
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none bg-white cursor-pointer"
+                      >
+                        <option value="">Selecione seu bairro...</option>
+                        {bairros.map((bairro) => (
+                          <option key={bairro._id} value={bairro.name}>
+                            {bairro.name} - R$ {bairro.price.toFixed(2)}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
-                </div>
-                <div className="mt-4 bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800 border border-yellow-200 text-center">
-                  💡 Seus dados ficam salvos automaticamente para a próxima vez!
+
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="text-xs font-bold text-gray-500 ml-1">E-mail (Opcional - Para NF)</label>
+                    <input name="email" value={formData.email} onChange={handleChange} placeholder="seu@email.com" className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-black outline-none" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* DIREITA - PAGAMENTO E RESUMO */}
             <div className="w-full lg:w-96 h-fit sticky top-32">
               <div className="bg-white rounded-3xl p-6 border-2 border-black shadow-card">
-                <h2 className="font-black text-xl mb-6 uppercase">Pagamento</h2>
+                <h2 className="font-black text-xl mb-6 uppercase">Resumo</h2>
                 
-                {/* Botões visuais - O Backend controla as opções reais agora */}
-                <div className="flex gap-2 mb-6 opacity-80 pointer-events-none">
-                  <button className="flex-1 py-3 rounded-xl border-2 border-black bg-yellow-400 font-bold text-sm">PIX</button>
-                  <button className="flex-1 py-3 rounded-xl border-2 border-black bg-gray-100 text-gray-800 font-bold text-sm">CARTÃO</button>
+                <div className="space-y-3 mb-6 text-sm">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal Donuts</span>
+                    <span>R$ {total.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 items-center">
+                    <span className="flex items-center gap-1"><Truck size={14}/> Taxa de Entrega</span>
+                    {taxaEntrega === 0 ? (
+                       <span className="text-xs text-orange-500 italic">Selecione o bairro</span>
+                    ) : (
+                       <span>R$ {taxaEntrega.toFixed(2)}</span>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-center text-gray-500 mb-6 -mt-4">Escolha a forma de pagamento na próxima tela.</p>
 
                 <div className="border-t-2 border-black pt-4 mb-6">
                   <div className="flex justify-between text-2xl font-black">
                     <span>TOTAL</span>
-                    <span>R$ {total.toFixed(2)}</span>
+                    <span>R$ {(total + taxaEntrega).toFixed(2)}</span>
                   </div>
                 </div>
 
                 <button 
                   onClick={handleCheckout} 
-                  disabled={loading} 
+                  disabled={loading || !formData.neighborhood} 
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl border-2 border-black shadow-button active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
