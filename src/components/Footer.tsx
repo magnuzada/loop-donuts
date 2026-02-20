@@ -1,4 +1,5 @@
-import { ArrowRight, Facebook, Instagram, Twitter } from "lucide-react";
+import { ArrowRight, Instagram, Facebook, Twitter } from "lucide-react";
+import Link from "next/link";
 
 export function Footer() {
   return (
@@ -40,22 +41,31 @@ export function Footer() {
           
           {/* Coluna 1: Marca (Logo + Social) */}
           <div className="flex flex-col items-start gap-6">
-            <img 
-              src="/logo.png" 
-              alt="Loop Donuts Logo" 
-              className="w-40 md:w-48 h-auto object-contain"
-            />
+            <Link href="/">
+              <img 
+                src="/logo.png" 
+                alt="Loop Donuts Logo" 
+                className="w-40 md:w-48 h-auto object-contain cursor-pointer"
+              />
+            </Link>
             {/* Redes Sociais */}
             <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors">
+              <a 
+                href="https://www.instagram.com/loop.donuts.jf/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors"
+              >
                 <Instagram className="w-5 h-5" />
               </a>
+              {/* Deixei Facebook e Twitter comentados para o futuro
               <a href="#" className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors">
                 <Facebook className="w-5 h-5" />
               </a>
               <a href="#" className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors">
                 <Twitter className="w-5 h-5" />
               </a>
+              */}
             </div>
           </div>
 
@@ -63,11 +73,11 @@ export function Footer() {
           <div>
             <h4 className="font-display text-xl mb-6 text-brand">SABORES</h4>
             <ul className="space-y-3 font-body text-gray-300">
-              <li><a href="#" className="hover:text-cta transition-colors">Clássicos</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Recheados</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Veganos</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Sazonais</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Cafés & Bebidas</a></li>
+              <li><Link href="/menu" className="hover:text-cta transition-colors">Clássicos</Link></li>
+              <li><Link href="/menu" className="hover:text-cta transition-colors">Recheados</Link></li>
+              <li><Link href="/menu" className="hover:text-cta transition-colors">Veganos</Link></li>
+              <li><Link href="/menu" className="hover:text-cta transition-colors">Sazonais</Link></li>
+              <li><Link href="/menu" className="hover:text-cta transition-colors">Cafés & Bebidas</Link></li>
             </ul>
           </div>
 
@@ -75,9 +85,9 @@ export function Footer() {
           <div>
             <h4 className="font-display text-xl mb-6 text-brand">A LOOP</h4>
             <ul className="space-y-3 font-body text-gray-300">
-              <li><a href="#" className="hover:text-cta transition-colors">Cardápio</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Nossa História</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Fale Conosco</a></li>
+              <li><Link href="/menu" className="hover:text-cta transition-colors">Cardápio</Link></li>
+              <li><Link href="/sobre-nos" className="hover:text-cta transition-colors">Nossa História</Link></li>
+              <li><Link href="/contato" className="hover:text-cta transition-colors">Fale Conosco</Link></li>
             </ul>
           </div>
 
@@ -85,9 +95,9 @@ export function Footer() {
           <div>
             <h4 className="font-display text-xl mb-6 text-brand">SUPORTE</h4>
             <ul className="space-y-3 font-body text-gray-300">
-              <li><a href="#" className="hover:text-cta transition-colors">Central de Ajuda</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Termos de Uso</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Política de Privacidade</a></li>
+              <li><Link href="/ajuda" className="hover:text-cta transition-colors">Central de Ajuda</Link></li>
+              <li><Link href="/termos" className="hover:text-cta transition-colors">Termos de Uso</Link></li>
+              <li><Link href="/privacidade" className="hover:text-cta transition-colors">Política de Privacidade</Link></li>
             </ul>
           </div>
 
