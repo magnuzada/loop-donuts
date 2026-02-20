@@ -39,16 +39,12 @@ export function Footer() {
         <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           
           {/* Coluna 1: Marca (Logo + Social) */}
-          {/* 'items-start' garante que tudo fique alinhado à esquerda */}
           <div className="flex flex-col items-start gap-6">
-            
-            {/* Logo */}
             <img 
               src="/logo.png" 
               alt="Loop Donuts Logo" 
               className="w-40 md:w-48 h-auto object-contain"
             />
-
             {/* Redes Sociais */}
             <div className="flex gap-4">
               <a href="#" className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors">
@@ -79,21 +75,17 @@ export function Footer() {
           <div>
             <h4 className="font-display text-xl mb-6 text-brand">A LOOP</h4>
             <ul className="space-y-3 font-body text-gray-300">
+              <li><a href="#" className="hover:text-cta transition-colors">Cardápio</a></li>
               <li><a href="#" className="hover:text-cta transition-colors">Nossa História</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Lojas Físicas</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Trabalhe Conosco</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Imprensa</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Seja um Franqueado</a></li>
+              <li><a href="#" className="hover:text-cta transition-colors">Fale Conosco</a></li>
             </ul>
           </div>
 
-          {/* Coluna 4: Ajuda */}
+          {/* Coluna 4: Suporte/Ajuda */}
           <div>
-            <h4 className="font-display text-xl mb-6 text-brand">AJUDA</h4>
+            <h4 className="font-display text-xl mb-6 text-brand">SUPORTE</h4>
             <ul className="space-y-3 font-body text-gray-300">
               <li><a href="#" className="hover:text-cta transition-colors">Central de Ajuda</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Entregas</a></li>
-              <li><a href="#" className="hover:text-cta transition-colors">Fale Conosco</a></li>
               <li><a href="#" className="hover:text-cta transition-colors">Termos de Uso</a></li>
               <li><a href="#" className="hover:text-cta transition-colors">Política de Privacidade</a></li>
             </ul>
@@ -104,7 +96,7 @@ export function Footer() {
         {/* Linha Final: Copyright */}
         <div className="border-t border-gray-800 pt-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="font-mono text-sm text-gray-500">
-            © 2026 Loop Donuts Ltda. Todos os direitos reservados.
+            © {new Date().getFullYear()} Loop Donuts Ltda. Todos os direitos reservados.
           </p>
           <p className="font-mono text-sm text-gray-600">
             Desenvolvido com amor e código.

@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import Link from "next/link"; // <-- Importação adicionada aqui!
 
 export function AboutSection() {
   return (
@@ -22,10 +23,11 @@ export function AboutSection() {
 
             {/* Botão Abaixo da Imagem (Padrão do Site) */}
             <div className="w-full max-w-md flex justify-center md:justify-start">
-              <button className="group relative w-full md:w-auto inline-flex items-center justify-center gap-3 bg-cta hover:bg-cta-hover text-black font-display text-xl px-8 py-4 rounded-pill border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
+              {/* <-- AQUI ESTÁ A MÁGICA: O button virou Link --> */}
+              <Link href="/sobre-nos" className="group relative w-full md:w-auto inline-flex items-center justify-center gap-3 bg-cta hover:bg-cta-hover text-black font-display text-xl px-8 py-4 rounded-pill border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
                 CONHEÇA A COZINHA
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+              </Link>
             </div>
 
           </div>
@@ -52,7 +54,7 @@ export function AboutSection() {
               </p>
             </div>
 
-            {/* Estatísticas Rápidas (Opcional, mas fica bonito) */}
+            {/* Estatísticas Rápidas */}
             <div className="grid grid-cols-3 gap-4 mt-10 border-t-2 border-dashed border-gray-300 pt-8">
               <div>
                 <span className="block font-display text-3xl text-black">24h</span>

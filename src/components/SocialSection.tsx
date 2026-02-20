@@ -1,4 +1,5 @@
 import { ArrowRight, Instagram, Quote, Star } from "lucide-react";
+import Link from "next/link";
 
 // --- DADOS FALSOS (MOCK) ---
 const testimonials = [
@@ -59,10 +60,10 @@ export function SocialSection() {
         {/* Botão de Depoimentos (AGORA AMARELO) */}
         <div className="flex justify-center mt-8">
            {/* Mudei aqui: de 'bg-white' para 'bg-cta' e ajustei o hover */}
-           <button className="group relative inline-flex items-center gap-3 bg-cta hover:bg-cta-hover text-black font-display text-xl px-8 py-4 rounded-pill border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
+           <Link href="/contato" className="group relative inline-flex items-center gap-3 bg-cta hover:bg-cta-hover text-black font-display text-xl px-8 py-4 rounded-pill border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
              DEIXAR MEU REVIEW
              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-           </button>
+           </Link>
         </div>
       </div>
 
