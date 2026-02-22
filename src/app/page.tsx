@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NavBar } from "@/components/NavBar";
 import { ArrowRight, Star } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
+import Image from "next/image"; // Importar o componente Image
 import { ParallaxComet } from "@/components/ParallaxComet";
 import { AboutSection } from "@/components/AboutSection";
 import { SocialSection } from "@/components/SocialSection";
@@ -19,8 +20,15 @@ export default async function Home() {
   const dbDonuts = await Product.find({ status: "active", stock: { $gt: 0 } }).lean();
 
   const allDonuts = dbDonuts.map((d: any) => ({
-    ...d,
-    id: d._id.toString(),
+    id: d._id.toString(), // Converte ObjectId em String
+    name: d.name,
+    description: d.description,
+    price: d.price,
+    category: d.category,
+    image: d.image,
+    stock: d.stock,
+    status: d.status,
+    // NÃO passamos o objeto d inteiro para evitar levar o __v ou métodos do Mongoose
   }));
 
   // Filtro para o carrossel de Favoritos (Especiais)
@@ -45,9 +53,15 @@ export default async function Home() {
              </Link>
            </div>
         </nav>
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-brand to-brand-light opacity-90" />
-          <img src="/hero.png" alt="Donut Gigante" className="w-full h-full object-cover mix-blend-overlay opacity-40" />
+        <div className="absolute inset-0 z-0"> 
+          <div className="absolute inset-0 bg-gradient-to-b from-brand to-brand-light opacity-90" /> 
+          <Image 
+            src="/hero.png" 
+            alt="Donut Gigante" 
+            fill 
+            priority 
+            className="object-cover mix-blend-overlay opacity-40" 
+          /> 
         </div>
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center">
           <h1 className="font-display text-6xl md:text-8xl text-white drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] mb-4 transform -rotate-2">

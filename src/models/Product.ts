@@ -5,7 +5,12 @@ const ProductSchema = new Schema(
     name: { type: String, required: true },
     description: { type: String },
     price: { type: Number, required: true },
-    category: { type: String, default: "Tradicional" },
+    category: {
+      type: String,
+      enum: ['tradicionais', 'especiais', 'veganos'], // Só aceita esses 3
+      lowercase: true, // Força salvar sempre em minúsculo
+      default: "tradicionais"
+    },
     image: { type: String },
     stock: { type: Number, default: 0 },
     

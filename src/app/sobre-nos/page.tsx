@@ -1,126 +1,92 @@
 "use client";
 
-import { NavBar } from "@/components/NavBar";
-import { Footer } from "@/components/Footer";
-import { ArrowRight, Sparkles, Zap, Flame } from "lucide-react";
-import Link from "next/link";
+import Image from "next/image";
+import { Clock, ShieldCheck, Sparkles, Heart } from "lucide-react";
 
-export default function AboutPage() {
+const PILARES = [
+  {
+    icon: <Clock className="w-8 h-8" />,
+    title: "O Segredo está no Tempo",
+    desc: "Nossa massa descansa o tempo necessário para atingir a leveza ideal. A paciência é o que garante a textura que você só encontra aqui."
+  },
+  {
+    icon: <ShieldCheck className="w-8 h-8" />,
+    title: "Seleção Rigorosa",
+    desc: "Escolhemos cada ingrediente pela sua pureza e frescor. Se não agrega um sabor extraordinário, não entra no nosso processo."
+  },
+  {
+    icon: <Sparkles className="w-8 h-8" />,
+    title: "Feito para Compartilhar",
+    desc: "Criamos donuts que iniciam conversas e aproximam pessoas. Um detalhe artesanal pensado para transformar qualquer café em uma celebração."
+  }
+];
+
+export default function SobreNosPage() {
   return (
-    <main className="min-h-screen bg-white flex flex-col font-body selection:bg-black selection:text-white">
-      <NavBar />
-
-      <div className="flex-grow pt-32 pb-20">
+    <main className="min-h-screen bg-white pt-24 pb-16">
+      <div className="container mx-auto px-6">
         
-        {/* HERO SECTION (O Gancho) */}
-        <section className="container mx-auto px-6 max-w-5xl mb-24 text-center">
-          <div className="inline-block bg-yellow-400 border-2 border-black px-4 py-1 mb-6 transform -rotate-2">
-            <span className="font-bold text-sm tracking-widest uppercase">Arquivos Confidenciais</span>
+        {/* CABEÇALHO DA PÁGINA */}
+        <div className="max-w-4xl mb-20">
+          <div className="inline-block bg-secondary px-4 py-1 border-2 border-black font-mono font-bold uppercase text-sm mb-6 transform -rotate-1">
+            Nossa História
           </div>
-          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-black text-black uppercase leading-[0.9] tracking-tighter mb-8 drop-shadow-[4px_4px_0px_rgba(200,200,200,1)]">
-            COMEÇOU COMO UM MOTIM.
-            <br />
-            <span className="text-yellow-400 drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">OU UM EXPERIMENTO.</span>
+          <h1 className="font-display text-6xl md:text-8xl text-black uppercase leading-none tracking-tighter mb-8">
+            DE NOSSA COZINHA, <br />
+            <span className="text-brand text-5xl md:text-7xl">PARA O SEU MOMENTO.</span>
           </h1>
-          <p className="text-xl md:text-2xl text-gray-800 max-w-2xl mx-auto font-medium">
-            Nossa história de origem tem cheiro de óleo quente, muito açúcar e pura glória.
+          <p className="font-body text-2xl text-gray-700 leading-relaxed max-w-3xl border-l-4 border-brand pl-6 italic">
+            "Na Loop, não acreditamos em produção em massa. Acreditamos em mãos que moldam, olhos que cuidam e corações que celebram a cada fornada."
           </p>
-        </section>
+        </div>
 
-        {/* STORY BOCKS (O Storytelling em 3 Atos) */}
-        <section className="container mx-auto px-6 max-w-5xl mb-24">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            {/* Ato 1: A Origem */}
-            <div className="bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 rounded-2xl hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <Flame className="w-10 h-10 text-yellow-500 mb-6" />
-              <h3 className="font-display text-2xl font-black uppercase mb-4">A Semente da Rebeldia</h3>
-              <p className="text-gray-600 font-medium leading-relaxed">
-                Tudo começou numa cozinha apertada com a missão de salvar a cidade dos lanches sem graça. Plantamos a semente da rebeldia açucarada muito antes disso virar hype.
-              </p>
+        {/* SEÇÃO DA IMAGEM E TEXTO DE APOIO */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-24">
+          <div className="relative">
+            <div className="absolute -top-4 -left-4 w-full h-full bg-brand rounded-2xl border-2 border-black -z-10" />
+            <div className="relative aspect-video w-full border-4 border-black rounded-2xl overflow-hidden shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+              <Image
+                src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2000"
+                alt="Nossa família preparando donuts"
+                fill
+                className="object-cover"
+              />
             </div>
-
-            {/* Ato 2: O Manifesto */}
-            <div className="bg-yellow-400 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 rounded-2xl hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all transform md:-translate-y-6">
-              <Zap className="w-10 h-10 text-black mb-6" />
-              <h3 className="font-display text-2xl font-black uppercase mb-4">Radicais & Inovadores</h3>
-              <p className="text-black font-medium leading-relaxed">
-                Pode nos chamar de radicais, revolucionários... Ou apenas os inventores da sua nova obsessão. (Ok, não inventamos o donut. Mas definitivamente deixamos ele muito mais foda).
-              </p>
-            </div>
-
-            {/* Ato 3: O Presente */}
-            <div className="bg-black text-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(255,204,0,1)] p-8 rounded-2xl hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(255,204,0,1)] transition-all">
-              <Sparkles className="w-10 h-10 text-yellow-400 mb-6" />
-              <h3 className="font-display text-2xl font-black uppercase mb-4 text-yellow-400">A Vida Boa</h3>
-              <p className="text-gray-300 font-medium leading-relaxed">
-                Hoje continuamos na mesma vibe: entregando a dose perfeita de endorfina em formato de argola. Sem frescura, zero arrependimentos, mordidas agressivas. Dias felizes.
-              </p>
-            </div>
-
           </div>
-        </section>
-
-        {/* PHOTO GALLERY (Sua Cozinha e Bastidores) */}
-        <section className="container mx-auto px-6 max-w-6xl mb-24">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-12">
-            <h2 className="font-display text-4xl md:text-5xl font-black uppercase tracking-tighter">
-              VISUAL DA COZINHA
-            </h2>
-            <p className="font-mono text-sm text-gray-500 md:max-w-xs md:text-right mt-4 md:mt-0">
-              *Registros (quase) não confidenciais da nossa linha de produção.
+          <div className="flex flex-col gap-6">
+            <p className="text-xl text-gray-800 leading-relaxed">
+              Nossa jornada começou em uma cozinha de família e hoje continua em cada detalhe que chega até você. 
+              O que começou como um hobby de domingo transformou-se na nossa paixão diária: 
+              redescobrir a confeitaria artesanal.
+            </p>
+            <p className="text-xl text-gray-800 leading-relaxed">
+              Cada donut é um ciclo de carinho — do momento em que selecionamos a farinha até o 
+              instante em que você abre a nossa caixa.
             </p>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            
-            {/* Foto 1 - Vertical (Ex: Alguém sovando a massa) */}
-            <div className="md:col-span-2 md:row-span-2 bg-gray-200 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-2xl overflow-hidden group relative aspect-square md:aspect-auto">
-              {/* Troque o link do src depois pela sua foto real */}
-              <img src="https://images.unsplash.com/photo-1551024601-bec78aea704b?q=80&w=1000&auto=format&fit=crop" alt="Bastidores Cozinha" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <span className="bg-yellow-400 text-black font-bold px-4 py-2 border-2 border-black transform -rotate-3 uppercase">Mão na Massa</span>
+        {/* GRID DOS PILARES (BOXES REATIVOS) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {PILARES.map((pilar, index) => (
+            <div 
+              key={index}
+              className="group p-8 bg-brand-light border-2 border-black rounded-2xl transition-all duration-300 hover:bg-brand hover:-translate-y-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <div className="w-16 h-16 bg-white border-2 border-black rounded-xl flex items-center justify-center mb-6 group-hover:bg-secondary transition-colors group-hover:rotate-6">
+                {pilar.icon}
               </div>
+              <h3 className="font-display text-2xl uppercase mb-4 group-hover:text-white transition-colors">
+                {pilar.title}
+              </h3>
+              <p className="text-gray-700 group-hover:text-white/90 transition-colors leading-relaxed">
+                {pilar.desc}
+              </p>
             </div>
-
-            {/* Foto 2 - Horizontal (Ex: Uma fornada pronta) */}
-            <div className="md:col-span-2 bg-gray-200 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-2xl overflow-hidden group relative aspect-[16/9]">
-              <img src="https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?q=80&w=1000&auto=format&fit=crop" alt="Donuts Frescos" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-            </div>
-
-            {/* Quadro de Texto */}
-            <div className="md:col-span-1 bg-yellow-400 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-2xl flex items-center justify-center p-8 text-center aspect-square">
-               <h3 className="font-black text-2xl uppercase leading-tight">Feito<br/>para<br/>devorar.</h3>
-            </div>
-
-            {/* Foto 3 - Quadrada (Ex: Detalhe do recheio) */}
-            <div className="md:col-span-1 bg-gray-200 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-2xl overflow-hidden group relative aspect-square">
-              <img src="https://images.unsplash.com/photo-1626094309830-abbb0c99da4a?q=80&w=1000&auto=format&fit=crop" alt="Detalhe do Donut" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-            </div>
-
-          </div>
-        </section>
-
-        {/* CTA FINAL */}
-        <section className="container mx-auto px-6 max-w-4xl text-center">
-          <div className="bg-white border-4 border-black p-12 shadow-[12px_12px_0px_0px_rgba(255,204,0,1)] rounded-3xl">
-            <h2 className="font-display text-4xl md:text-5xl font-black uppercase mb-6">
-              Chega de ler.
-              <br />
-              Vá comer.
-            </h2>
-            <Link href="/menu">
-              <button className="inline-flex items-center gap-2 bg-black text-white hover:bg-yellow-400 hover:text-black font-display text-xl px-10 py-5 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-none transition-all">
-                IR PARA O CARDÁPIO
-                <ArrowRight className="w-6 h-6" />
-              </button>
-            </Link>
-          </div>
-        </section>
+          ))}
+        </div>
 
       </div>
-
-      <Footer />
     </main>
   );
 }

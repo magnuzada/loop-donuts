@@ -5,7 +5,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**",
+        hostname: "**", // Isso permite qualquer site (Pexels, Unsplash, Freepik)
       },
     ],
   },
