@@ -2,64 +2,88 @@ import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { connectToDatabase } from "@/lib/mongodb";
 import Order from "@/models/Order";
+import crypto from 'crypto';
+
+// 1. Função de Validação de Assinatura (Segurança Máxima)
+function verifyMercadoPagoSignature(
+  rawBody: string,
+  signatureHeader: string | null,
+  requestIdHeader: string | null,
+  webhookSecret: string
+): boolean {
+  if (!signatureHeader || !requestIdHeader || !webhookSecret) return false;
+
+  const signatureParts = signatureHeader.split(',').map(part => part.trim().split('='));
+  let ts = '';
+  let v1 = '';
+  
+  for (const [key, value] of signatureParts) {
+    if (key === 'ts') ts = value;
+    else if (key === 'v1') v1 = value;
+  }
+
+  if (!ts || !v1) return false;
+
+  const signedContent = `id:${requestIdHeader}:ts:${ts}:${rawBody}`;
+  const hmac = crypto.createHmac('sha256', webhookSecret);
+  hmac.update(signedContent);
+  const expectedSignature = hmac.digest('hex');
+
+  return expectedSignature === v1;
+}
 
 export async function POST(request: Request) {
   try {
-    // 1. Pega os dados que o Mercado Pago enviou
+    const rawBody = await request.text();
     const url = new URL(request.url);
-    const id = url.searchParams.get("data.id");
-    const type = url.searchParams.get("type");
+    
+    // Extrai ID e Tipo de onde quer que eles venham (Query ou Body)
+    const id = url.searchParams.get("data.id") || JSON.parse(rawBody)?.data?.id;
+    const type = url.searchParams.get("type") || JSON.parse(rawBody)?.type;
 
-    // Só nos importamos se for uma notificação de "pagamento"
     if (type !== "payment" || !id) {
       return NextResponse.json({ message: "Ignorado - Não é pagamento" }, { status: 200 });
     }
 
-    const accessToken = process.env.MP_ACCESS_TOKEN;
-    if (!accessToken) {
-      console.error("❌ Webhook: Token MP ausente");
-      return NextResponse.json({ error: "Erro de config" }, { status: 500 });
-    }
+    // Validação de Assinatura (Opcional em Dev, Recomendada em Prod)
+    const signatureHeader = request.headers.get('x-signature');
+    const requestIdHeader = request.headers.get('x-request-id');
+    const webhookSecret = process.env.MP_WEBHOOK_SECRET;
 
-    // 2. Segurança Máxima: Vai no MP perguntar se esse pagamento é real mesmo
-    const client = new MercadoPagoConfig({ accessToken });
-    const payment = new Payment(client);
-    const paymentData = await payment.get({ id });
-
-    // 3. Verifica o Status e o ID do Pedido
-    const status = paymentData.status; // ex: "approved", "rejected", "pending"
-    const orderId = paymentData.external_reference; // Aquele ID do Mongo que mandamos ontem
-
-    if (!orderId) {
-      console.error("❌ Webhook: Pagamento sem external_reference");
-      return NextResponse.json({ error: "Pedido não rastreável" }, { status: 400 });
+    if (webhookSecret && (!signatureHeader || !verifyMercadoPagoSignature(rawBody, signatureHeader, requestIdHeader, webhookSecret))) {
+      console.error("❌ Webhook: Assinatura inválida detectada!");
+      return NextResponse.json({ error: "Assinatura inválida" }, { status: 403 });
     }
 
     await connectToDatabase();
 
-    // 4. Se foi aprovado, atualiza o banco de dados!
-    if (status === "approved") {
+    const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
+    const payment = new Payment(client);
+    
+    // 2. Busca o pagamento direto no Mercado Pago (Verificação de verdade)
+    const paymentData = await payment.get({ id });
+    const status = paymentData.status;
+    const orderId = paymentData.external_reference; // IMPORTANTE: Seu Checkout deve enviar o ID do pedido aqui
+
+    console.log(`🔔 Webhook: Pagamento ${id} recebeu status: ${status}`);
+
+    // 3. Atualiza o pedido no seu Banco de Dados
+    if (status === "approved" && orderId) {
       const updatedOrder = await Order.findByIdAndUpdate(
         orderId,
-        { 
-          status: "paid", // Muda para pago! Isso vai fazer o Painel Admin apitar 🔔
-          paymentId: id 
-        },
+        { status: "paid" },
         { new: true }
       );
       
-      console.log(`✅ WEBHOOK: Pedido ${orderId} atualizado para PAGO!`);
-    } else {
-      console.log(`⚠️ WEBHOOK: Pedido ${orderId} teve status alterado para: ${status}`);
-      // Opcional: Você pode tratar cancelamentos aqui no futuro
+      if (updatedOrder) {
+        console.log(`✅ Pedido ${orderId} marcado como PAGO!`);
+      }
     }
 
-    // Retorna 200 OK para o Mercado Pago parar de mandar a mesma notificação
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({ received: true }, { status: 200 });
 
   } catch (error: any) {
-    console.error("❌ ERRO NO WEBHOOK:", error.message);
-    // Sempre retorne 200 para o MP não ficar tentando reenviar em caso de erro interno nosso
-    return NextResponse.json({ error: "Erro interno processado" }, { status: 200 });
+    console.error("❌ Erro no Webhook:", error.message);
+    return NextResponse.json({ error: "Erro interno" }, { status: 200 }); // Retornamos 200 para o MP parar de tentar
   }
 }
