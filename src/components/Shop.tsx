@@ -104,7 +104,7 @@ export default function Shop({ products }: { products: any[] }) {
       </header>
 
       {/* Vitrine */}
-      <main className="max-w-6xl mx-auto p-4 md:p-6">
+      <main className="max-w-6xl mx-auto px-4 pt-40 md:pt-32 md:px-6 md:pb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-center">
           Cardápio Fresquinho
         </h2>

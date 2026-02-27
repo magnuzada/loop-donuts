@@ -86,7 +86,7 @@ export function AboutSection() {
             <div className="mt-4">
               <Link 
                 href="/sobre-nos"
-                className="inline-flex items-center gap-2 bg-secondary border-2 border-black px-8 py-4 font-bold uppercase tracking-wider shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[6px] hover:translate-y-[6px] transition-all group-button"
+                className="inline-flex items-center gap-2 bg-secondary rounded-pill border-3 border-black px-8 py-4 font-bold uppercase tracking-wider shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-none transition-all group-button"
               >
                 Conheça nossa História
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />

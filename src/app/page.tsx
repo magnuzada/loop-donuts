@@ -38,7 +38,7 @@ export default async function Home() {
   );
 
   return (
-    <main className="min-h-screen bg-brand-light relative overflow-x-hidden">
+    <main className="min-h-screen bg-brand-light relative overflow-x-hidden -mt-32 md:-mt-36 lg:-mt-40">
       <NavBar />
       
       {/* --- HERO SECTION (Original e Intocada) --- */}
@@ -53,14 +53,14 @@ export default async function Home() {
              </Link>
            </div>
         </nav>
-        <div className="absolute inset-0 z-0"> 
-          <div className="absolute inset-0 bg-gradient-to-b from-brand to-brand-light opacity-90" /> 
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-black/40" />
           <Image 
             src="/hero.png" 
             alt="Donut Gigante" 
             fill 
             priority 
-            className="object-cover mix-blend-overlay opacity-40" 
+            className="object-cover opacity-100" 
           /> 
         </div>
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center">
@@ -77,7 +77,7 @@ export default async function Home() {
         </div>
         <div className="absolute bottom-0 left-0 right-0 bg-black py-3 overflow-hidden whitespace-nowrap border-t-4 border-black z-30">
           <div className="text-secondary font-mono font-bold text-lg animate-marquee inline-block">
-              ENTREGA NO BAIRRO • FRESQUINHO • FEITO HOJE • SEM GLÚTEN • LOOP DONUTS • 
+              ENTREGA NO BAIRRO • FRESQUINHO • FEITO HOJE • SEM GLÚTEN • LOOP DONUTS • ENTREGA NO BAIRRO • FRESQUINHO • FEITO HOJE • SEM GLÚTEN • LOOP DONUTS • ENTREGA NO BAIRRO • FRESQUINHO • FEITO HOJE • SEM GLÚTEN • LOOP DONUTS • ENTREGA NO BAIRRO • FRESQUINHO • FEITO HOJE • SEM GLÚTEN • LOOP DONUTS • 
           </div>
         </div>
       </section>

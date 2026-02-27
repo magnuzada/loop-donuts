@@ -22,7 +22,7 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning={true}>
         <CartProvider>
           <NavBar /> {/* O Logo agora aparece em tudo, inclusive no Sobre Nós */}
-          <main>
+          <main className="pt-32 md:pt-36 lg:pt-40">
             {children}
           </main>
           <Footer /> {/* O Footer também fica fixo em todas as páginas */}

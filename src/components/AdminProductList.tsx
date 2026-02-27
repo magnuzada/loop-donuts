@@ -49,7 +49,7 @@ export function AdminProductList() {
   if (loading) return <div className="p-10 text-center">Carregando lista... ⏳</div>;
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 mt-10">
+    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 pt-40 md:pt-32">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">📋 Lista de Produtos ({products.length})</h2>
         <button onClick={fetchProducts} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200" title="Atualizar">

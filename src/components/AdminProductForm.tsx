@@ -71,7 +71,7 @@ export function AdminProductForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8 pb-20">
+    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8 pb-20 pt-40 md:pt-32">
       
       {/* BLOCO 1: Identificação */}
       <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
