@@ -5,8 +5,6 @@ import ProductCard from "@/components/ProductCard";
 import Image from "next/image"; // Importar o componente Image
 import { ParallaxComet } from "@/components/ParallaxComet";
 import { AboutSection } from "@/components/AboutSection";
-import { SocialSection } from "@/components/SocialSection";
-import { Footer } from "@/components/Footer";
 import { LoopSlider } from "@/components/LoopSlider";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
@@ -148,8 +146,6 @@ export default async function Home() {
       </section>
 
       <AboutSection />
-      <SocialSection />
-      <Footer />
     </main>
   );
 }

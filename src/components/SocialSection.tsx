@@ -10,9 +10,13 @@ const REVIEWS = [
   { name: "Marcos V.", text: "O de Pistache é de outro mundo! Recomendo muito.", stars: 5 },
 ];
 
-// DICA: Coloque suas fotos em public/instagram/foto1.jpg e mude os nomes aqui
+// 📸 Fotos reais lidas da pasta public/redes/
 const INSTAGRAM_PHOTOS = [
-  "/insta-1.jpg", "/insta-2.jpg", "/insta-3.jpg", "/insta-4.jpg", "/insta-5.jpg"
+  "/redes/foto-1.jpg", 
+  "/redes/foto-2.jpg", 
+  "/redes/foto-3.jpg", 
+  "/redes/foto-4.jpg", 
+  "/redes/foto-5.jpg", 
 ];
 
 export function SocialSection() {

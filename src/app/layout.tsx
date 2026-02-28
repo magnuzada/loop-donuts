@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { NavBar } from "@/components/NavBar"; // 👈 Nome correto aqui
+import { SocialSection } from "@/components/SocialSection";
 import { Footer } from "@/components/Footer"; // 👈 Aproveite e coloque o Footer aqui
 
 const inter = Inter({ subsets: ["latin"] });
@@ -25,6 +26,7 @@ export default function RootLayout({
           <main className="pt-32 md:pt-36 lg:pt-40">
             {children}
           </main>
+          <SocialSection />
           <Footer /> {/* O Footer também fica fixo em todas as páginas */}
         </CartProvider>
       </body>

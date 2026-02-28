@@ -40,7 +40,7 @@ export function Footer() {
         <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           
           {/* Coluna 1: Marca (Logo + Social) */}
-          <div className="flex flex-col items-start gap-6">
+          <div className="flex flex-col items-center gap-4">
             <Link href="/">
               <img 
                 src="/logo.png" 
@@ -56,7 +56,7 @@ export function Footer() {
                 rel="noopener noreferrer" 
                 className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors"
               >
-                <Instagram className="w-5 h-5" />
+                <Instagram size={20} color="#E4405F" />
               </a>
               {/* Deixei Facebook e Twitter comentados para o futuro
               <a href="#" className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors">
