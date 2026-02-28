@@ -4,8 +4,7 @@ import Link from "next/link";
 export function Footer() {
   return (
     <footer className="relative z-20 border-t-2 border-black">
-      
-      {/* --- SEÇÃO DE NEWSLETTER (Amarelo Vibrante) --- */}
+      {/* Seção de Newsletter */}
       <div className="bg-cta py-16 px-6 border-b-2 border-black">
         <div className="container mx-auto max-w-4xl text-center">
           
@@ -16,7 +15,6 @@ export function Footer() {
             Receba promoções secretas, sabores novos e cupom de aniversário direto no seu e-mail.
           </p>
 
-          {/* Formulário de Cadastro */}
           <form className="flex flex-col md:flex-row gap-4 justify-center items-center">
             <input 
               type="email" 
@@ -35,11 +33,10 @@ export function Footer() {
         </div>
       </div>
 
-      {/* --- MAPA DO SITE (Fundo Preto) --- */}
+      {/* Mapa do Site e Links */}
       <div className="bg-black text-white pt-16 pb-8 px-6">
         <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          
-          {/* Coluna 1: Marca (Logo + Social) */}
+          {/* Coluna 1: Marca e Redes Sociais */}
           <div className="flex flex-col items-center gap-4">
             <Link href="/">
               <img 
@@ -48,7 +45,6 @@ export function Footer() {
                 className="w-40 md:w-48 h-auto object-contain cursor-pointer"
               />
             </Link>
-            {/* Redes Sociais */}
             <div className="flex gap-4">
               <a 
                 href="https://www.instagram.com/loop.donuts.jf/" 
@@ -58,18 +54,10 @@ export function Footer() {
               >
                 <Instagram size={20} color="#E4405F" />
               </a>
-              {/* Deixei Facebook e Twitter comentados para o futuro
-              <a href="#" className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:bg-cta transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              */}
             </div>
           </div>
 
-          {/* Coluna 2: Cardápio */}
+          {/* Coluna 2: Sabores */}
           <div>
             <h4 className="font-display text-xl mb-6 text-brand">SABORES</h4>
             <ul className="space-y-3 font-body text-gray-300">
@@ -91,7 +79,7 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Coluna 4: Suporte/Ajuda */}
+          {/* Coluna 4: Suporte */}
           <div>
             <h4 className="font-display text-xl mb-6 text-brand">SUPORTE</h4>
             <ul className="space-y-3 font-body text-gray-300">
@@ -103,7 +91,7 @@ export function Footer() {
 
         </div>
 
-        {/* Linha Final: Copyright */}
+        {/* Copyright */}
         <div className="border-t border-gray-800 pt-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="font-mono text-sm text-gray-500">
             © {new Date().getFullYear()} Loop Donuts Ltda. Todos os direitos reservados.

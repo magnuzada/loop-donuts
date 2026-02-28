@@ -10,7 +10,7 @@ const REVIEWS = [
   { name: "Marcos V.", text: "O de Pistache é de outro mundo! Recomendo muito.", stars: 5 },
 ];
 
-// 📸 Fotos reais lidas da pasta public/redes/
+// Fotos para o carrossel do Instagram.
 const INSTAGRAM_PHOTOS = [
   "/redes/foto-1.jpg", 
   "/redes/foto-2.jpg", 
@@ -23,7 +23,7 @@ export function SocialSection() {
   return (
     <section className="py-24 bg-brand-light overflow-hidden">
       
-      {/* --- REVIEWS --- */}
+      {/* Seção de Avaliações */}
       <div className="mb-20">
         <div className="container mx-auto px-6 mb-10 text-center">
           <h2 className="font-display text-4xl text-black uppercase tracking-tighter">
@@ -49,13 +49,13 @@ export function SocialSection() {
         </LoopSlider>
       </div>
 
-      {/* --- INSTAGRAM (Botão com Degradê) --- */}
+      {/* Seção do Instagram */}
       <div className="bg-black py-16">
         <div className="container mx-auto px-6 mb-10 text-center flex flex-col items-center">
           <a 
             href="https://www.instagram.com/loop.donuts.jf/" 
             target="_blank"
-            /* GRADIENTE INSTAGRAM AQUI */
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-3 bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white px-8 py-4 rounded-full border-2 border-white/20 shadow-lg hover:scale-105 transition-transform group"
           >
             <Instagram className="w-7 h-7 group-hover:rotate-12 transition-transform" />
